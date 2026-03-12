@@ -7,11 +7,14 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 BREWFILE="${REPO_ROOT}/Brewfile"
 REPO_ZPROFILE="${REPO_ROOT}/zsh/.zprofile"
 REPO_ZSHRC="${REPO_ROOT}/zsh/.zshrc"
+REPO_ZSH_PLUGINS="${REPO_ROOT}/zsh/.zsh_plugins.txt"
 REPO_STARSHIP_CONFIG="${REPO_ROOT}/starship/starship.toml"
 LOCAL_ZPROFILE="${HOME}/.zprofile"
 LOCAL_ZPROFILE_BACKUP="${HOME}/.zprofile.pre-dotfiles-backup"
 LOCAL_ZSHRC="${HOME}/.zshrc"
 LOCAL_ZSHRC_BACKUP="${HOME}/.zshrc.pre-dotfiles-backup"
+LOCAL_ZSH_PLUGINS="${HOME}/.zsh_plugins.txt"
+LOCAL_ZSH_PLUGINS_BACKUP="${HOME}/.zsh_plugins.txt.pre-dotfiles-backup"
 LOCAL_STARSHIP_CONFIG="${HOME}/.config/starship.toml"
 LOCAL_STARSHIP_CONFIG_BACKUP="${HOME}/.config/starship.toml.pre-dotfiles-backup"
 HOMEBREW_TUNA_GIT_MIRROR="https://mirrors.tuna.tsinghua.edu.cn/git/homebrew"
@@ -158,6 +161,14 @@ link_zshrc() {
   link_managed_file "${REPO_ZSHRC}" "${LOCAL_ZSHRC}" "${LOCAL_ZSHRC_BACKUP}" ".zshrc"
 }
 
+link_zsh_plugins() {
+  link_managed_file \
+    "${REPO_ZSH_PLUGINS}" \
+    "${LOCAL_ZSH_PLUGINS}" \
+    "${LOCAL_ZSH_PLUGINS_BACKUP}" \
+    ".zsh_plugins.txt"
+}
+
 link_starship_config() {
   link_managed_file \
     "${REPO_STARSHIP_CONFIG}" \
@@ -183,6 +194,7 @@ main() {
   configure_homebrew_china_mirror
   link_zprofile
   link_zshrc
+  link_zsh_plugins
   link_starship_config
   install_brew_bundle
   log "Bootstrap complete"

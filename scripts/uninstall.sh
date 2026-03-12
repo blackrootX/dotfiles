@@ -7,11 +7,16 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 BREWFILE="${REPO_ROOT}/Brewfile"
 REPO_ZPROFILE="${REPO_ROOT}/zsh/.zprofile"
 REPO_ZSHRC="${REPO_ROOT}/zsh/.zshrc"
+REPO_ZSH_PLUGINS="${REPO_ROOT}/zsh/.zsh_plugins.txt"
 REPO_STARSHIP_CONFIG="${REPO_ROOT}/starship/starship.toml"
 LOCAL_ZPROFILE="${HOME}/.zprofile"
 LOCAL_ZPROFILE_BACKUP="${HOME}/.zprofile.pre-dotfiles-backup"
 LOCAL_ZSHRC="${HOME}/.zshrc"
 LOCAL_ZSHRC_BACKUP="${HOME}/.zshrc.pre-dotfiles-backup"
+LOCAL_ZSH_PLUGINS="${HOME}/.zsh_plugins.txt"
+LOCAL_ZSH_PLUGINS_BACKUP="${HOME}/.zsh_plugins.txt.pre-dotfiles-backup"
+LOCAL_ZSH_PLUGIN_BUNDLE="${HOME}/.zsh_plugins.zsh"
+LOCAL_ANTIDOTE_DIR="${HOME}/Library/Caches/antidote"
 LOCAL_STARSHIP_CONFIG="${HOME}/.config/starship.toml"
 LOCAL_STARSHIP_CONFIG_BACKUP="${HOME}/.config/starship.toml.pre-dotfiles-backup"
 HOMEBREW_TUNA_GIT_MIRROR="https://mirrors.tuna.tsinghua.edu.cn/git/homebrew"
@@ -101,15 +106,19 @@ uninstall_tracked_brewfile_entries() {
 }
 
 uninstall_remaining_formulae() {
-  local formulae
-  mapfile -t formulae < <(brew list --formula)
+  local -a formulae=()
+  local formula
+
+  while IFS= read -r formula; do
+    [[ -z "${formula}" ]] && continue
+    formulae+=("${formula}")
+  done < <(brew list --formula)
 
   if [[ "${#formulae[@]}" -eq 0 ]]; then
     return
   fi
 
   log "Removing remaining Homebrew formulae"
-  local formula
   for (( idx=${#formulae[@]}-1; idx>=0; idx-- )); do
     formula="${formulae[idx]}"
     [[ -z "${formula}" ]] && continue
@@ -172,6 +181,26 @@ cleanup_zshrc() {
   cleanup_managed_file "${REPO_ZSHRC}" "${LOCAL_ZSHRC}" "${LOCAL_ZSHRC_BACKUP}" ".zshrc"
 }
 
+cleanup_zsh_plugins() {
+  cleanup_managed_file \
+    "${REPO_ZSH_PLUGINS}" \
+    "${LOCAL_ZSH_PLUGINS}" \
+    "${LOCAL_ZSH_PLUGINS_BACKUP}" \
+    ".zsh_plugins.txt"
+}
+
+cleanup_antidote_artifacts() {
+  if [[ -f "${LOCAL_ZSH_PLUGIN_BUNDLE}" || -L "${LOCAL_ZSH_PLUGIN_BUNDLE}" ]]; then
+    log "Removing generated Antidote bundle"
+    rm -f "${LOCAL_ZSH_PLUGIN_BUNDLE}"
+  fi
+
+  if [[ -d "${LOCAL_ANTIDOTE_DIR}" ]]; then
+    log "Removing Antidote cache directory"
+    rm -rf "${LOCAL_ANTIDOTE_DIR}"
+  fi
+}
+
 cleanup_starship_config() {
   cleanup_managed_file \
     "${REPO_STARSHIP_CONFIG}" \
@@ -188,6 +217,8 @@ cleanup_managed_configs() {
   cleanup_starship_config
   cleanup_zprofile
   cleanup_zshrc
+  cleanup_zsh_plugins
+  cleanup_antidote_artifacts
   CLEANUP_COMPLETE=1
 }
 

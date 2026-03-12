@@ -1,6 +1,51 @@
 export EZA_CONFIG_DIR="${HOME}/.config/eza"
 export EZA_COLORS_THEME="dracula"
 
+_antidote_load() {
+  local antidote_script plugins_file bundle_file
+  antidote_script=""
+  plugins_file="${HOME}/.zsh_plugins.txt"
+  bundle_file="${HOME}/.zsh_plugins.zsh"
+
+  for antidote_prefix in /opt/homebrew /usr/local; do
+    if [[ -f "${antidote_prefix}/share/antidote/antidote.zsh" ]]; then
+      antidote_script="${antidote_prefix}/share/antidote/antidote.zsh"
+      break
+    fi
+  done
+
+  [[ -n "${antidote_script}" ]] || return 0
+  [[ -f "${plugins_file}" ]] || return 0
+
+  source "${antidote_script}"
+
+  if [[ ! -f "${bundle_file}" || "${plugins_file}" -nt "${bundle_file}" ]]; then
+    antidote bundle < "${plugins_file}" > "${bundle_file}"
+  fi
+
+  source "${bundle_file}"
+}
+
+_antidote_update() {
+  local antidote_script
+  antidote_script=""
+
+  for antidote_prefix in /opt/homebrew /usr/local; do
+    if [[ -f "${antidote_prefix}/share/antidote/antidote.zsh" ]]; then
+      antidote_script="${antidote_prefix}/share/antidote/antidote.zsh"
+      break
+    fi
+  done
+
+  [[ -n "${antidote_script}" ]] || return 1
+
+  source "${antidote_script}"
+  antidote update
+  rm -f -- "${HOME}/.zsh_plugins.zsh"
+}
+
+_antidote_load
+
 if command -v eza >/dev/null 2>&1; then
   alias ls='eza --icons --no-user --group-directories-first'
   alias ll='eza -l --icons --no-user --group-directories-first'
@@ -32,6 +77,10 @@ if command -v atuin >/dev/null 2>&1; then
   eval "$(atuin init zsh)"
 fi
 
+if command -v thefuck >/dev/null 2>&1; then
+  eval "$(thefuck --alias)"
+fi
+
 if command -v starship >/dev/null 2>&1; then
   eval "$(starship init zsh)"
 fi
@@ -39,6 +88,8 @@ fi
 if command -v mise >/dev/null 2>&1; then
   eval "$(mise activate zsh)"
 fi
+
+alias uu='brew upgrade && mise upgrade && _antidote_update'
 
 y() {
   if ! command -v yazi >/dev/null 2>&1; then
