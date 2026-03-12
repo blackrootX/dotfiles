@@ -10,13 +10,9 @@ REPO_ZSHRC="${REPO_ROOT}/zsh/.zshrc"
 REPO_ZSH_PLUGINS="${REPO_ROOT}/zsh/.zsh_plugins.txt"
 REPO_STARSHIP_CONFIG="${REPO_ROOT}/starship/starship.toml"
 LOCAL_ZPROFILE="${HOME}/.zprofile"
-LOCAL_ZPROFILE_BACKUP="${HOME}/.zprofile.pre-dotfiles-backup"
 LOCAL_ZSHRC="${HOME}/.zshrc"
-LOCAL_ZSHRC_BACKUP="${HOME}/.zshrc.pre-dotfiles-backup"
 LOCAL_ZSH_PLUGINS="${HOME}/.zsh_plugins.txt"
-LOCAL_ZSH_PLUGINS_BACKUP="${HOME}/.zsh_plugins.txt.pre-dotfiles-backup"
 LOCAL_STARSHIP_CONFIG="${HOME}/.config/starship.toml"
-LOCAL_STARSHIP_CONFIG_BACKUP="${HOME}/.config/starship.toml.pre-dotfiles-backup"
 HOMEBREW_TUNA_GIT_MIRROR="https://mirrors.tuna.tsinghua.edu.cn/git/homebrew"
 
 log() {
@@ -113,8 +109,7 @@ configure_homebrew_china_mirror() {
 link_managed_file() {
   local source_path="$1"
   local target_path="$2"
-  local backup_path="$3"
-  local label="$4"
+  local label="$3"
 
   mkdir -p "$(dirname "${source_path}")" "$(dirname "${target_path}")"
 
@@ -131,22 +126,11 @@ link_managed_file() {
       log "Local ${label} already points to repo-managed file"
       return
     fi
+  fi
 
-    if [[ ! -e "${backup_path}" && ! -L "${backup_path}" ]]; then
-      log "Backing up existing ${label} symlink to ${backup_path}"
-      mv "${target_path}" "${backup_path}"
-    else
-      log "Existing ${label} backup already present at ${backup_path}"
-      rm -f "${target_path}"
-    fi
-  elif [[ -e "${target_path}" ]]; then
-    if [[ ! -e "${backup_path}" && ! -L "${backup_path}" ]]; then
-      log "Backing up existing ${label} to ${backup_path}"
-      mv "${target_path}" "${backup_path}"
-    else
-      log "Existing ${label} backup already present at ${backup_path}"
-      rm -f "${target_path}"
-    fi
+  if [[ -e "${target_path}" || -L "${target_path}" ]]; then
+    log "Replacing existing ${label}"
+    rm -rf "${target_path}"
   fi
 
   log "Linking ${target_path} to repo-managed ${label}"
@@ -154,18 +138,17 @@ link_managed_file() {
 }
 
 link_zprofile() {
-  link_managed_file "${REPO_ZPROFILE}" "${LOCAL_ZPROFILE}" "${LOCAL_ZPROFILE_BACKUP}" ".zprofile"
+  link_managed_file "${REPO_ZPROFILE}" "${LOCAL_ZPROFILE}" ".zprofile"
 }
 
 link_zshrc() {
-  link_managed_file "${REPO_ZSHRC}" "${LOCAL_ZSHRC}" "${LOCAL_ZSHRC_BACKUP}" ".zshrc"
+  link_managed_file "${REPO_ZSHRC}" "${LOCAL_ZSHRC}" ".zshrc"
 }
 
 link_zsh_plugins() {
   link_managed_file \
     "${REPO_ZSH_PLUGINS}" \
     "${LOCAL_ZSH_PLUGINS}" \
-    "${LOCAL_ZSH_PLUGINS_BACKUP}" \
     ".zsh_plugins.txt"
 }
 
@@ -173,7 +156,6 @@ link_starship_config() {
   link_managed_file \
     "${REPO_STARSHIP_CONFIG}" \
     "${LOCAL_STARSHIP_CONFIG}" \
-    "${LOCAL_STARSHIP_CONFIG_BACKUP}" \
     "starship config"
 }
 
@@ -184,7 +166,17 @@ install_brew_bundle() {
   fi
 
   log "Installing Homebrew bundle from ${BREWFILE}"
-  brew bundle install --file="${BREWFILE}"
+  brew bundle install --verbose --file="${BREWFILE}"
+}
+
+install_mise_toolchains() {
+  if ! command -v mise >/dev/null 2>&1; then
+    printf 'mise is required but was not found after Brewfile install.\n' >&2
+    exit 1
+  fi
+
+  log "Installing latest Node.js and Bun with mise"
+  mise use -g -y node@latest bun@latest
 }
 
 main() {
@@ -197,6 +189,7 @@ main() {
   link_zsh_plugins
   link_starship_config
   install_brew_bundle
+  install_mise_toolchains
   log "Bootstrap complete"
 }
 

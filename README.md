@@ -51,13 +51,13 @@ The bootstrap script currently does the following:
 - Initializes Homebrew for the current shell session
 - Repoints Homebrew brew/core/cask remotes to the Tsinghua China mirror
 - Uses the Tsinghua bottle and API mirror for package downloads during bootstrap
-- Backs up an existing `~/.zprofile` to `~/.zprofile.pre-dotfiles-backup` when needed
+- Replaces any existing `~/.zprofile` with the tracked `zsh/.zprofile`
 - Links `~/.zprofile` to the tracked `zsh/.zprofile`
-- Backs up an existing `~/.zshrc` to `~/.zshrc.pre-dotfiles-backup` when needed
+- Replaces any existing `~/.zshrc` with the tracked `zsh/.zshrc`
 - Links `~/.zshrc` to the tracked `zsh/.zshrc`
-- Backs up an existing `~/.zsh_plugins.txt` to `~/.zsh_plugins.txt.pre-dotfiles-backup` when needed
+- Replaces any existing `~/.zsh_plugins.txt` with the tracked `zsh/.zsh_plugins.txt`
 - Links `~/.zsh_plugins.txt` to the tracked `zsh/.zsh_plugins.txt`
-- Backs up an existing `~/.config/starship.toml` when needed and links the tracked Starship config
+- Replaces any existing `~/.config/starship.toml` with the tracked Starship config
 - Installs all packages declared in `Brewfile`
 
 The uninstall script currently does the following:
@@ -70,10 +70,7 @@ The uninstall script currently does the following:
 - Uninstalls tracked formulae and casks declared in `Brewfile`
 - Attempts to uninstall any remaining Homebrew formulae and casks
 - Runs the official Homebrew uninstall script
-- Restores the previous `~/.zprofile` from backup when one exists
-- Restores the previous `~/.zshrc` from backup when one exists
-- Restores the previous `~/.zsh_plugins.txt` from backup when one exists
-- Restores the previous `~/.config/starship.toml` from backup when one exists
+- Removes legacy `*.pre-dotfiles-backup` files from older bootstrap runs when present
 
 The app install script currently does the following:
 

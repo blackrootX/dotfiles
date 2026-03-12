@@ -10,15 +10,15 @@ REPO_ZSHRC="${REPO_ROOT}/zsh/.zshrc"
 REPO_ZSH_PLUGINS="${REPO_ROOT}/zsh/.zsh_plugins.txt"
 REPO_STARSHIP_CONFIG="${REPO_ROOT}/starship/starship.toml"
 LOCAL_ZPROFILE="${HOME}/.zprofile"
-LOCAL_ZPROFILE_BACKUP="${HOME}/.zprofile.pre-dotfiles-backup"
 LOCAL_ZSHRC="${HOME}/.zshrc"
-LOCAL_ZSHRC_BACKUP="${HOME}/.zshrc.pre-dotfiles-backup"
 LOCAL_ZSH_PLUGINS="${HOME}/.zsh_plugins.txt"
-LOCAL_ZSH_PLUGINS_BACKUP="${HOME}/.zsh_plugins.txt.pre-dotfiles-backup"
 LOCAL_ZSH_PLUGIN_BUNDLE="${HOME}/.zsh_plugins.zsh"
 LOCAL_ANTIDOTE_DIR="${HOME}/Library/Caches/antidote"
 LOCAL_STARSHIP_CONFIG="${HOME}/.config/starship.toml"
-LOCAL_STARSHIP_CONFIG_BACKUP="${HOME}/.config/starship.toml.pre-dotfiles-backup"
+LEGACY_ZPROFILE_BACKUP="${HOME}/.zprofile.pre-dotfiles-backup"
+LEGACY_ZSHRC_BACKUP="${HOME}/.zshrc.pre-dotfiles-backup"
+LEGACY_ZSH_PLUGINS_BACKUP="${HOME}/.zsh_plugins.txt.pre-dotfiles-backup"
+LEGACY_STARSHIP_CONFIG_BACKUP="${HOME}/.config/starship.toml.pre-dotfiles-backup"
 HOMEBREW_TUNA_GIT_MIRROR="https://mirrors.tuna.tsinghua.edu.cn/git/homebrew"
 CLEANUP_COMPLETE=0
 
@@ -154,8 +154,7 @@ uninstall_homebrew() {
 cleanup_managed_file() {
   local source_path="$1"
   local target_path="$2"
-  local backup_path="$3"
-  local label="$4"
+  local label="$3"
 
   if [[ -L "${target_path}" ]]; then
     local current_target
@@ -166,26 +165,20 @@ cleanup_managed_file() {
       rm -f "${target_path}"
     fi
   fi
-
-  if [[ -e "${backup_path}" || -L "${backup_path}" ]]; then
-    log "Restoring previous ${label} from backup"
-    mv "${backup_path}" "${target_path}"
-  fi
 }
 
 cleanup_zprofile() {
-  cleanup_managed_file "${REPO_ZPROFILE}" "${LOCAL_ZPROFILE}" "${LOCAL_ZPROFILE_BACKUP}" ".zprofile"
+  cleanup_managed_file "${REPO_ZPROFILE}" "${LOCAL_ZPROFILE}" ".zprofile"
 }
 
 cleanup_zshrc() {
-  cleanup_managed_file "${REPO_ZSHRC}" "${LOCAL_ZSHRC}" "${LOCAL_ZSHRC_BACKUP}" ".zshrc"
+  cleanup_managed_file "${REPO_ZSHRC}" "${LOCAL_ZSHRC}" ".zshrc"
 }
 
 cleanup_zsh_plugins() {
   cleanup_managed_file \
     "${REPO_ZSH_PLUGINS}" \
     "${LOCAL_ZSH_PLUGINS}" \
-    "${LOCAL_ZSH_PLUGINS_BACKUP}" \
     ".zsh_plugins.txt"
 }
 
@@ -205,8 +198,29 @@ cleanup_starship_config() {
   cleanup_managed_file \
     "${REPO_STARSHIP_CONFIG}" \
     "${LOCAL_STARSHIP_CONFIG}" \
-    "${LOCAL_STARSHIP_CONFIG_BACKUP}" \
     "starship config"
+}
+
+cleanup_legacy_backups() {
+  local legacy_path
+  for legacy_path in \
+    "${LEGACY_ZPROFILE_BACKUP}" \
+    "${LEGACY_ZSHRC_BACKUP}" \
+    "${LEGACY_ZSH_PLUGINS_BACKUP}" \
+    "${LEGACY_STARSHIP_CONFIG_BACKUP}"; do
+    if [[ -e "${legacy_path}" || -L "${legacy_path}" ]]; then
+      log "Removing legacy backup ${legacy_path}"
+      rm -rf "${legacy_path}"
+    fi
+  done
+}
+
+print_shell_restart_notice() {
+  cat <<'EOF'
+[uninstall] Homebrew removal is complete.
+[uninstall] If this current shell still shows missing-command errors for old Homebrew tools,
+[uninstall] start a fresh shell with: exec /bin/zsh -f
+EOF
 }
 
 cleanup_managed_configs() {
@@ -219,6 +233,8 @@ cleanup_managed_configs() {
   cleanup_zshrc
   cleanup_zsh_plugins
   cleanup_antidote_artifacts
+  cleanup_legacy_backups
+  print_shell_restart_notice
   CLEANUP_COMPLETE=1
 }
 
