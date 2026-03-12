@@ -169,6 +169,44 @@ install_brew_bundle() {
   brew bundle install --verbose --file="${BREWFILE}"
 }
 
+run_1password_checkpoint() {
+  if ! command -v op >/dev/null 2>&1; then
+    log "1Password CLI is not installed, skipping 1Password checkpoint"
+    return
+  fi
+
+  if op whoami >/dev/null 2>&1; then
+    log "1Password CLI is already signed in"
+    return
+  fi
+
+  if [[ ! -t 0 ]]; then
+    log "Skipping 1Password sign-in checkpoint because this shell is non-interactive"
+    return
+  fi
+
+  local choice
+  printf '\n'
+  printf '1Password CLI is installed but not signed in yet.\n'
+  printf 'This is the manual checkpoint for a new Mac before any secret-backed setup.\n'
+  printf 'Press Enter to run `op signin` now, or type \"skip\" to continue without signing in: '
+  IFS= read -r choice
+
+  if [[ "${choice}" == "skip" ]]; then
+    log "Skipping 1Password sign-in checkpoint by user request"
+    return
+  fi
+
+  log "Starting 1Password CLI sign-in"
+  if ! op signin; then
+    printf '1Password CLI sign-in did not complete successfully.\n' >&2
+    printf 'Rerun bootstrap later or sign in manually with `op signin`.\n' >&2
+    exit 1
+  fi
+
+  log "1Password CLI sign-in complete"
+}
+
 install_mise_toolchains() {
   if ! command -v mise >/dev/null 2>&1; then
     printf 'mise is required but was not found after Brewfile install.\n' >&2
@@ -189,6 +227,7 @@ main() {
   link_zsh_plugins
   link_starship_config
   install_brew_bundle
+  run_1password_checkpoint
   install_mise_toolchains
   log "Bootstrap complete"
 }

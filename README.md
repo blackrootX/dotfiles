@@ -2,7 +2,7 @@
 
 Migration helpers for bringing command-line tooling onto a new Mac.
 
-This v1 focuses on Homebrew packages managed through a `Brewfile`. It proves the bootstrap and uninstall flow with one tracked package, `jq`, while leaving room to add more formulae, casks, `mas`, and config syncing later.
+The current setup is centered on Homebrew packages managed through a `Brewfile`. It already covers the core CLI layer for a new Mac and leaves room to keep expanding into `cask`, `mas`, secrets, and deeper config syncing.
 
 ## Requirements
 
@@ -13,10 +13,10 @@ This v1 focuses on Homebrew packages managed through a `Brewfile`. It proves the
 
 ## Layout
 
-- `scripts/bootstrap.sh`: install Homebrew if needed, then install tracked formulae
+- `scripts/bootstrap.sh`: install Homebrew if needed, then install tracked packages and shell config
 - `scripts/install-apps.sh`: install tracked Mac App Store apps with `mas`
 - `scripts/uninstall.sh`: remove tracked Homebrew formulae, then uninstall Homebrew
-- `Brewfile`: source of truth for Homebrew packages in v1
+- `Brewfile`: source of truth for tracked Homebrew CLI packages
 - `starship/starship.toml`: tracked Starship prompt config applied to `~/.config/starship.toml`
 - `zsh/.zprofile`: tracked login-shell config applied to `~/.zprofile`
 - `zsh/.zshrc`: tracked zsh config applied to `~/.zshrc` during bootstrap
@@ -59,6 +59,7 @@ The bootstrap script currently does the following:
 - Links `~/.zsh_plugins.txt` to the tracked `zsh/.zsh_plugins.txt`
 - Replaces any existing `~/.config/starship.toml` with the tracked Starship config
 - Installs all packages declared in `Brewfile`
+- Offers an interactive 1Password CLI sign-in checkpoint after package install, with a skip option for later setup
 
 The uninstall script currently does the following:
 
@@ -90,11 +91,11 @@ The app install script currently does the following:
 
 Suggested expansion order for this repo:
 
-1. Expand `Brewfile` coverage for more CLI packages and `cask` apps.
-2. Grow `mas` coverage for Mac App Store apps that are better managed through Apple updates.
-3. Track shell, Git, terminal, and editor configs that should follow you to a new Mac.
-4. Add runtime and toolchain setup such as `mise`, Node, Python tooling, and any global CLI dependencies you want every machine to have.
-5. Document secrets and credential restore steps for things like SSH keys, GitHub auth, cloud tokens, and app sign-ins.
+1. Add `brew cask` coverage for desktop apps that are not better handled by the Mac App Store.
+2. Grow `mas` coverage for Mac App Store apps that should stay on Apple-managed install and update flows.
+3. Track more shell, Git, terminal, and editor configs that should follow you to a new Mac.
+4. Expand runtime and toolchain setup such as `mise`, Node, Python tooling, and any global CLI dependencies you still want standardized.
+5. Document secrets and credential restore steps for things like SSH keys, GitHub auth, cloud tokens, app sign-ins, and future 1Password-backed setup.
 6. Add macOS system preference setup for defaults like Finder, Dock, keyboard, screenshots, and input behavior.
 
 Practical repo structure to grow toward:
@@ -113,7 +114,7 @@ Automation guidelines for future phases:
 
 ## Notes
 
-- v1 intentionally keeps the uninstall scope limited to Homebrew-managed software. It does not remove unrelated shell files, dotfiles, or user configuration.
-- The first tracked formula is `jq` so the workflow stays simple and easy to validate.
+- The current focus is the Homebrew-managed CLI layer plus the shell config needed to use it comfortably on a new Mac.
+- The uninstall flow intentionally stays limited to Homebrew-managed software and the repo-managed shell artifacts it created. It does not remove unrelated personal files or user configuration.
 - The tracked [zsh/.zshrc](/Users/blackpig/Code/Github/dotfiles/zsh/.zshrc) will source `~/.zshrc.local` when present, so each Mac can keep machine-specific zsh settings outside the repo.
 - The tracked [zsh/.zprofile](/Users/blackpig/Code/Github/dotfiles/zsh/.zprofile) will source `~/.zprofile.local` when present, so each Mac can keep machine-specific login-shell settings outside the repo.
