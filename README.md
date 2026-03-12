@@ -20,6 +20,7 @@ This v1 focuses on Homebrew packages managed through a `Brewfile`. It proves the
 - `starship/starship.toml`: tracked Starship prompt config applied to `~/.config/starship.toml`
 - `zsh/.zprofile`: tracked login-shell config applied to `~/.zprofile`
 - `zsh/.zshrc`: tracked zsh config applied to `~/.zshrc` during bootstrap
+- `zsh/.zsh_plugins.txt`: tracked Antidote plugin list applied to `~/.zsh_plugins.txt`
 
 ## Usage
 
@@ -54,6 +55,8 @@ The bootstrap script currently does the following:
 - Links `~/.zprofile` to the tracked `zsh/.zprofile`
 - Backs up an existing `~/.zshrc` to `~/.zshrc.pre-dotfiles-backup` when needed
 - Links `~/.zshrc` to the tracked `zsh/.zshrc`
+- Backs up an existing `~/.zsh_plugins.txt` to `~/.zsh_plugins.txt.pre-dotfiles-backup` when needed
+- Links `~/.zsh_plugins.txt` to the tracked `zsh/.zsh_plugins.txt`
 - Backs up an existing `~/.config/starship.toml` when needed and links the tracked Starship config
 - Installs all packages declared in `Brewfile`
 
@@ -62,12 +65,14 @@ The uninstall script currently does the following:
 - Verifies the host is macOS
 - Cleans up the managed `~/.zprofile` symlink even if Homebrew is already absent
 - Cleans up the managed `~/.zshrc` symlink even if Homebrew is already absent
+- Cleans up the managed `~/.zsh_plugins.txt` symlink even if Homebrew is already absent
 - Cleans up the managed `~/.config/starship.toml` symlink even if Homebrew is already absent
 - Uninstalls tracked formulae and casks declared in `Brewfile`
 - Attempts to uninstall any remaining Homebrew formulae and casks
 - Runs the official Homebrew uninstall script
 - Restores the previous `~/.zprofile` from backup when one exists
 - Restores the previous `~/.zshrc` from backup when one exists
+- Restores the previous `~/.zsh_plugins.txt` from backup when one exists
 - Restores the previous `~/.config/starship.toml` from backup when one exists
 
 The app install script currently does the following:
@@ -86,10 +91,28 @@ The app install script currently does the following:
 
 ## Roadmap
 
-Planned next steps for this repo:
+Suggested expansion order for this repo:
 
-- Track more `Brewfile` entries such as `cask` and `mas`
-- Add config and dotfile sync for shell and CLI tools
+1. Expand `Brewfile` coverage for more CLI packages and `cask` apps.
+2. Grow `mas` coverage for Mac App Store apps that are better managed through Apple updates.
+3. Track shell, Git, terminal, and editor configs that should follow you to a new Mac.
+4. Add runtime and toolchain setup such as `mise`, Node, Python tooling, and any global CLI dependencies you want every machine to have.
+5. Document secrets and credential restore steps for things like SSH keys, GitHub auth, cloud tokens, and app sign-ins.
+6. Add macOS system preference setup for defaults like Finder, Dock, keyboard, screenshots, and input behavior.
+
+Practical repo structure to grow toward:
+
+- `Brewfile` for formulae and casks
+- `mas` app manifest or a dedicated tracked section in bootstrap docs
+- `zsh/`, `git/`, `config/`, and app-specific config directories
+- `scripts/bootstrap.sh`, `scripts/install-apps.sh`, `scripts/uninstall.sh`, and a future `scripts/post-install.sh`
+- `docs/manual-steps.md` for secrets, login steps, and machine-specific tasks
+
+Automation guidelines for future phases:
+
+- Fully automate package installs, symlinked configs, and repeatable macOS defaults
+- Keep secrets, account logins, licenses, and other personal state as documented manual steps unless you later add a secure secret-management workflow
+- Add validation steps after bootstrap, such as `brew doctor`, `mas list`, `gh auth status`, and spot checks for linked config files
 
 ## Notes
 
