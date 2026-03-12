@@ -1,8 +1,5 @@
-export HOMEBREW_API_DOMAIN="https://mirrors.tuna.tsinghua.edu.cn/homebrew-bottles/api"
-export HOMEBREW_BOTTLE_DOMAIN="https://mirrors.tuna.tsinghua.edu.cn/homebrew-bottles"
-export HOMEBREW_BREW_GIT_REMOTE="https://mirrors.tuna.tsinghua.edu.cn/git/homebrew/brew.git"
-export HOMEBREW_CORE_GIT_REMOTE="https://mirrors.tuna.tsinghua.edu.cn/git/homebrew/homebrew-core.git"
-export HOMEBREW_INSTALL_FROM_API=1
+export EZA_CONFIG_DIR="${HOME}/.config/eza"
+export EZA_COLORS_THEME="dracula"
 
 if command -v eza >/dev/null 2>&1; then
   alias ls='eza --icons --no-user --group-directories-first'
@@ -30,6 +27,34 @@ for fzf_prefix in /opt/homebrew /usr/local; do
     source "${fzf_prefix}/opt/fzf/shell/key-bindings.zsh"
   fi
 done
+
+if command -v atuin >/dev/null 2>&1; then
+  eval "$(atuin init zsh)"
+fi
+
+if command -v starship >/dev/null 2>&1; then
+  eval "$(starship init zsh)"
+fi
+
+if command -v mise >/dev/null 2>&1; then
+  eval "$(mise activate zsh)"
+fi
+
+y() {
+  if ! command -v yazi >/dev/null 2>&1; then
+    printf 'yazi is not installed.\n' >&2
+    return 1
+  fi
+
+  local tmp cwd
+  tmp="$(mktemp -t "yazi-cwd.XXXXXX")"
+  command yazi "$@" --cwd-file="$tmp"
+  IFS= read -r -d '' cwd < "$tmp"
+  if [[ "${cwd}" != "${PWD}" && -d "${cwd}" ]]; then
+    builtin cd -- "${cwd}"
+  fi
+  rm -f -- "$tmp"
+}
 
 if [[ -f "${HOME}/.zshrc.local" ]]; then
   source "${HOME}/.zshrc.local"

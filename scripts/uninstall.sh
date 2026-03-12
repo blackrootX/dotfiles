@@ -5,10 +5,17 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 BREWFILE="${REPO_ROOT}/Brewfile"
+REPO_ZPROFILE="${REPO_ROOT}/zsh/.zprofile"
 REPO_ZSHRC="${REPO_ROOT}/zsh/.zshrc"
+REPO_STARSHIP_CONFIG="${REPO_ROOT}/starship/starship.toml"
+LOCAL_ZPROFILE="${HOME}/.zprofile"
+LOCAL_ZPROFILE_BACKUP="${HOME}/.zprofile.pre-dotfiles-backup"
 LOCAL_ZSHRC="${HOME}/.zshrc"
 LOCAL_ZSHRC_BACKUP="${HOME}/.zshrc.pre-dotfiles-backup"
+LOCAL_STARSHIP_CONFIG="${HOME}/.config/starship.toml"
+LOCAL_STARSHIP_CONFIG_BACKUP="${HOME}/.config/starship.toml.pre-dotfiles-backup"
 HOMEBREW_TUNA_GIT_MIRROR="https://mirrors.tuna.tsinghua.edu.cn/git/homebrew"
+CLEANUP_COMPLETE=0
 
 log() {
   printf '[uninstall] %s\n' "$1"
@@ -54,47 +61,60 @@ uninstall_tracked_brewfile_entries() {
     return
   fi
 
+  local -a formulae=()
+  local -a casks=()
+
   while IFS= read -r line || [[ -n "${line}" ]]; do
     if [[ "${line}" =~ ^[[:space:]]*brew[[:space:]]+\"([^\"]+)\" ]]; then
-      local formula
-      formula="${BASH_REMATCH[1]}"
-
-      if brew list --formula "${formula}" >/dev/null 2>&1; then
-        log "Uninstalling tracked formula: ${formula}"
-        brew uninstall --formula "${formula}"
-      else
-        log "Tracked formula not installed: ${formula}"
-      fi
+      formulae+=("${BASH_REMATCH[1]}")
       continue
     fi
 
     if [[ "${line}" =~ ^[[:space:]]*cask[[:space:]]+\"([^\"]+)\" ]]; then
-      local cask
-      cask="${BASH_REMATCH[1]}"
-
-      if brew list --cask "${cask}" >/dev/null 2>&1; then
-        log "Uninstalling tracked cask: ${cask}"
-        brew uninstall --cask "${cask}"
-      else
-        log "Tracked cask not installed: ${cask}"
-      fi
+      casks+=("${BASH_REMATCH[1]}")
     fi
   done < "${BREWFILE}"
+
+  local formula
+  for (( idx=${#formulae[@]}-1; idx>=0; idx-- )); do
+    formula="${formulae[idx]}"
+
+    if brew list --formula "${formula}" >/dev/null 2>&1; then
+      log "Uninstalling tracked formula: ${formula}"
+      brew uninstall --formula "${formula}"
+    else
+      log "Tracked formula not installed: ${formula}"
+    fi
+  done
+
+  local cask
+  for (( idx=${#casks[@]}-1; idx>=0; idx-- )); do
+    cask="${casks[idx]}"
+
+    if brew list --cask "${cask}" >/dev/null 2>&1; then
+      log "Uninstalling tracked cask: ${cask}"
+      brew uninstall --cask "${cask}"
+    else
+      log "Tracked cask not installed: ${cask}"
+    fi
+  done
 }
 
 uninstall_remaining_formulae() {
   local formulae
-  formulae="$(brew list --formula)"
+  mapfile -t formulae < <(brew list --formula)
 
-  if [[ -z "${formulae}" ]]; then
+  if [[ "${#formulae[@]}" -eq 0 ]]; then
     return
   fi
 
   log "Removing remaining Homebrew formulae"
-  while IFS= read -r formula; do
+  local formula
+  for (( idx=${#formulae[@]}-1; idx>=0; idx-- )); do
+    formula="${formulae[idx]}"
     [[ -z "${formula}" ]] && continue
     brew uninstall --formula "${formula}"
-  done <<< "${formulae}"
+  done
 }
 
 uninstall_casks() {
@@ -122,28 +142,60 @@ uninstall_homebrew() {
   rm -rf "${installer_dir}"
 }
 
-cleanup_zshrc() {
-  if [[ -L "${LOCAL_ZSHRC}" ]]; then
-    local current_target
-    current_target="$(readlink "${LOCAL_ZSHRC}")"
+cleanup_managed_file() {
+  local source_path="$1"
+  local target_path="$2"
+  local backup_path="$3"
+  local label="$4"
 
-    if [[ "${current_target}" == "${REPO_ZSHRC}" ]]; then
-      log "Removing repo-managed .zshrc symlink"
-      rm -f "${LOCAL_ZSHRC}"
+  if [[ -L "${target_path}" ]]; then
+    local current_target
+    current_target="$(readlink "${target_path}")"
+
+    if [[ "${current_target}" == "${source_path}" ]]; then
+      log "Removing repo-managed ${label} symlink"
+      rm -f "${target_path}"
     fi
   fi
 
-  if [[ -e "${LOCAL_ZSHRC_BACKUP}" ]]; then
-    log "Restoring previous .zshrc from backup"
-    mv "${LOCAL_ZSHRC_BACKUP}" "${LOCAL_ZSHRC}"
+  if [[ -e "${backup_path}" || -L "${backup_path}" ]]; then
+    log "Restoring previous ${label} from backup"
+    mv "${backup_path}" "${target_path}"
   fi
+}
+
+cleanup_zprofile() {
+  cleanup_managed_file "${REPO_ZPROFILE}" "${LOCAL_ZPROFILE}" "${LOCAL_ZPROFILE_BACKUP}" ".zprofile"
+}
+
+cleanup_zshrc() {
+  cleanup_managed_file "${REPO_ZSHRC}" "${LOCAL_ZSHRC}" "${LOCAL_ZSHRC_BACKUP}" ".zshrc"
+}
+
+cleanup_starship_config() {
+  cleanup_managed_file \
+    "${REPO_STARSHIP_CONFIG}" \
+    "${LOCAL_STARSHIP_CONFIG}" \
+    "${LOCAL_STARSHIP_CONFIG_BACKUP}" \
+    "starship config"
+}
+
+cleanup_managed_configs() {
+  if [[ "${CLEANUP_COMPLETE}" -eq 1 ]]; then
+    return
+  fi
+
+  cleanup_starship_config
+  cleanup_zprofile
+  cleanup_zshrc
+  CLEANUP_COMPLETE=1
 }
 
 main() {
   require_macos
+  trap cleanup_managed_configs EXIT
 
   if ! ensure_brew_in_path; then
-    cleanup_zshrc
     log "Homebrew is not installed, cleaned up shell config if needed"
     exit 0
   fi
@@ -152,7 +204,6 @@ main() {
   uninstall_remaining_formulae
   uninstall_casks
   uninstall_homebrew
-  cleanup_zshrc
   log "Uninstall complete"
 }
 

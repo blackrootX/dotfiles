@@ -5,9 +5,15 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 BREWFILE="${REPO_ROOT}/Brewfile"
+REPO_ZPROFILE="${REPO_ROOT}/zsh/.zprofile"
 REPO_ZSHRC="${REPO_ROOT}/zsh/.zshrc"
+REPO_STARSHIP_CONFIG="${REPO_ROOT}/starship/starship.toml"
+LOCAL_ZPROFILE="${HOME}/.zprofile"
+LOCAL_ZPROFILE_BACKUP="${HOME}/.zprofile.pre-dotfiles-backup"
 LOCAL_ZSHRC="${HOME}/.zshrc"
 LOCAL_ZSHRC_BACKUP="${HOME}/.zshrc.pre-dotfiles-backup"
+LOCAL_STARSHIP_CONFIG="${HOME}/.config/starship.toml"
+LOCAL_STARSHIP_CONFIG_BACKUP="${HOME}/.config/starship.toml.pre-dotfiles-backup"
 HOMEBREW_TUNA_GIT_MIRROR="https://mirrors.tuna.tsinghua.edu.cn/git/homebrew"
 
 log() {
@@ -101,42 +107,63 @@ configure_homebrew_china_mirror() {
   fi
 }
 
-link_zshrc() {
-  mkdir -p "$(dirname "${REPO_ZSHRC}")"
+link_managed_file() {
+  local source_path="$1"
+  local target_path="$2"
+  local backup_path="$3"
+  local label="$4"
 
-  if [[ ! -f "${REPO_ZSHRC}" ]]; then
-    printf 'Managed zshrc not found: %s\n' "${REPO_ZSHRC}" >&2
+  mkdir -p "$(dirname "${source_path}")" "$(dirname "${target_path}")"
+
+  if [[ ! -f "${source_path}" ]]; then
+    printf 'Managed %s not found: %s\n' "${label}" "${source_path}" >&2
     exit 1
   fi
 
-  if [[ -L "${LOCAL_ZSHRC}" ]]; then
+  if [[ -L "${target_path}" ]]; then
     local current_target
-    current_target="$(readlink "${LOCAL_ZSHRC}")"
+    current_target="$(readlink "${target_path}")"
 
-    if [[ "${current_target}" == "${REPO_ZSHRC}" ]]; then
-      log "Local .zshrc already points to repo-managed zshrc"
+    if [[ "${current_target}" == "${source_path}" ]]; then
+      log "Local ${label} already points to repo-managed file"
       return
     fi
 
-    if [[ ! -e "${LOCAL_ZSHRC_BACKUP}" && ! -L "${LOCAL_ZSHRC_BACKUP}" ]]; then
-      log "Backing up existing .zshrc symlink to ${LOCAL_ZSHRC_BACKUP}"
-      mv "${LOCAL_ZSHRC}" "${LOCAL_ZSHRC_BACKUP}"
+    if [[ ! -e "${backup_path}" && ! -L "${backup_path}" ]]; then
+      log "Backing up existing ${label} symlink to ${backup_path}"
+      mv "${target_path}" "${backup_path}"
     else
-      log "Existing .zshrc backup already present at ${LOCAL_ZSHRC_BACKUP}"
-      rm -f "${LOCAL_ZSHRC}"
+      log "Existing ${label} backup already present at ${backup_path}"
+      rm -f "${target_path}"
     fi
-  elif [[ -e "${LOCAL_ZSHRC}" ]]; then
-    if [[ ! -e "${LOCAL_ZSHRC_BACKUP}" && ! -L "${LOCAL_ZSHRC_BACKUP}" ]]; then
-      log "Backing up existing .zshrc to ${LOCAL_ZSHRC_BACKUP}"
-      mv "${LOCAL_ZSHRC}" "${LOCAL_ZSHRC_BACKUP}"
+  elif [[ -e "${target_path}" ]]; then
+    if [[ ! -e "${backup_path}" && ! -L "${backup_path}" ]]; then
+      log "Backing up existing ${label} to ${backup_path}"
+      mv "${target_path}" "${backup_path}"
     else
-      log "Existing .zshrc backup already present at ${LOCAL_ZSHRC_BACKUP}"
-      rm -f "${LOCAL_ZSHRC}"
+      log "Existing ${label} backup already present at ${backup_path}"
+      rm -f "${target_path}"
     fi
   fi
 
-  log "Linking ${LOCAL_ZSHRC} to repo-managed zshrc"
-  ln -s "${REPO_ZSHRC}" "${LOCAL_ZSHRC}"
+  log "Linking ${target_path} to repo-managed ${label}"
+  ln -s "${source_path}" "${target_path}"
+}
+
+link_zprofile() {
+  link_managed_file "${REPO_ZPROFILE}" "${LOCAL_ZPROFILE}" "${LOCAL_ZPROFILE_BACKUP}" ".zprofile"
+}
+
+link_zshrc() {
+  link_managed_file "${REPO_ZSHRC}" "${LOCAL_ZSHRC}" "${LOCAL_ZSHRC_BACKUP}" ".zshrc"
+}
+
+link_starship_config() {
+  link_managed_file \
+    "${REPO_STARSHIP_CONFIG}" \
+    "${LOCAL_STARSHIP_CONFIG}" \
+    "${LOCAL_STARSHIP_CONFIG_BACKUP}" \
+    "starship config"
 }
 
 install_brew_bundle() {
@@ -154,7 +181,9 @@ main() {
   install_homebrew
   ensure_brew_in_path
   configure_homebrew_china_mirror
+  link_zprofile
   link_zshrc
+  link_starship_config
   install_brew_bundle
   log "Bootstrap complete"
 }
