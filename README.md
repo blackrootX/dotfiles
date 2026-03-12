@@ -14,6 +14,7 @@ This v1 focuses on Homebrew packages managed through a `Brewfile`. It proves the
 ## Layout
 
 - `scripts/bootstrap.sh`: install Homebrew if needed, then install tracked formulae
+- `scripts/install-apps.sh`: install tracked Mac App Store apps with `mas`
 - `scripts/uninstall.sh`: remove tracked Homebrew formulae, then uninstall Homebrew
 - `Brewfile`: source of truth for Homebrew packages in v1
 - `zsh/.zshrc`: tracked zsh config applied to `~/.zshrc` during bootstrap
@@ -24,6 +25,12 @@ Bootstrap a new Mac:
 
 ```bash
 ./scripts/bootstrap.sh
+```
+
+Install tracked App Store apps:
+
+```bash
+./scripts/install-apps.sh
 ```
 
 Remove the tracked Homebrew setup:
@@ -54,9 +61,18 @@ The uninstall script currently does the following:
 - Runs the official Homebrew uninstall script
 - Restores the previous `~/.zshrc` from backup when one exists
 
+The app install script currently does the following:
+
+- Verifies the host is macOS
+- Requires Homebrew to already be installed
+- Ensures `mas` is available
+- Requires an active Mac App Store login
+- Installs tracked App Store apps such as WeChat
+
 ## Idempotency
 
 - Running `./scripts/bootstrap.sh` multiple times is safe. Existing Homebrew installs and already-installed formulae are skipped.
+- Running `./scripts/install-apps.sh` multiple times is safe. Already-installed App Store apps are skipped.
 - Running `./scripts/uninstall.sh` on a machine without Homebrew exits successfully with a message.
 
 ## Roadmap

@@ -1,1 +1,7 @@
-brew "jq"
+brew "mas"
+brew "zoxide"
+brew "gh"
+brew "eza"
+brew "fd"
+brew "fzf"
+brew "ripgrep"
