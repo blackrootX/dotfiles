@@ -217,6 +217,56 @@ run_1password_checkpoint() {
   log "1Password CLI sign-in complete"
 }
 
+run_spotify_login_checkpoint() {
+  if [[ ! -d "/Applications/Spotify.app" ]]; then
+    log "Spotify is not installed, skipping Spotify login checkpoint"
+    return
+  fi
+
+  if ! command -v op >/dev/null 2>&1; then
+    log "1Password CLI is not installed, skipping Spotify login checkpoint"
+    return
+  fi
+
+  if ! op whoami >/dev/null 2>&1; then
+    log "1Password CLI is not signed in, skipping Spotify login checkpoint"
+    return
+  fi
+
+  if [[ ! -t 0 ]]; then
+    log "Skipping Spotify login checkpoint because this shell is non-interactive"
+    return
+  fi
+
+  local choice
+  printf '\n'
+  printf 'Spotify is installed and 1Password CLI is signed in.\n'
+  printf 'This checkpoint can open Spotify and 1Password so you can finish login now.\n'
+  printf 'Press Enter to continue, or type "skip" to do this later: '
+  IFS= read -r choice
+
+  if [[ "${choice}" == "skip" ]]; then
+    log "Skipping Spotify login checkpoint by user request"
+    return
+  fi
+
+  log "Opening Spotify"
+  open -a "Spotify"
+
+  if [[ -d "/Applications/1Password.app" ]]; then
+    log "Opening 1Password"
+    open -a "1Password"
+  fi
+
+  printf '\n'
+  printf 'Use 1Password to fill your Spotify credentials in the Spotify app.\n'
+  printf 'Complete any 2FA or device approval steps if Spotify asks for them.\n'
+  printf 'Press Enter when you are done so bootstrap can continue: '
+  IFS= read -r choice
+
+  log "Spotify login checkpoint complete"
+}
+
 install_mise_toolchains() {
   if ! command -v mise >/dev/null 2>&1; then
     printf 'mise is required but was not found after Brewfile install.\n' >&2
@@ -239,6 +289,7 @@ main() {
   link_ghostty_config
   install_brew_bundle
   run_1password_checkpoint
+  run_spotify_login_checkpoint
   install_mise_toolchains
   log "Bootstrap complete"
 }

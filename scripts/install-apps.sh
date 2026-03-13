@@ -92,7 +92,13 @@ main() {
   configure_homebrew_china_mirror
   ensure_mas_installed
   require_app_store_login
+  install_app "937984704" "Amphetamine"
+  install_app "1551531632" "AutoSwitchInput Pro"
+  install_app "1136220934" "Infuse"
+  install_app "944848654" "NeteaseMusic"
+  install_app "1006087419" "SnippetsLab"
   install_app "836500024" "WeChat"
+  install_app "497799835" "Xcode"
   log "App installation complete"
 }
 

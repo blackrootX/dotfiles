@@ -62,6 +62,7 @@ The bootstrap script currently does the following:
 - Replaces any existing `~/.config/ghostty` with the tracked Ghostty config directory
 - Installs all packages declared in `Brewfile`
 - Offers an interactive 1Password CLI sign-in checkpoint after package install, with a skip option for later setup
+- Offers an interactive Spotify login checkpoint after 1Password sign-in when Spotify is installed
 
 The uninstall script currently does the following:
 
@@ -82,7 +83,7 @@ The app install script currently does the following:
 - Requires Homebrew to already be installed
 - Ensures `mas` is available
 - Requires an active Mac App Store login
-- Installs tracked App Store apps such as WeChat
+- Installs tracked App Store apps such as Amphetamine, WeChat, and Xcode
 
 ## Idempotency
 
