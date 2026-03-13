@@ -17,6 +17,7 @@ LOCAL_ZSHRC="${HOME}/.zshrc"
 LOCAL_ZSH_PLUGINS="${HOME}/.zsh_plugins.txt"
 LOCAL_STARSHIP_CONFIG="${HOME}/.config/starship.toml"
 LOCAL_GHOSTTY_DIR="${HOME}/.config/ghostty"
+LOCAL_MISE_CONFIG="${HOME}/.config/mise/config.toml"
 HOMEBREW_TUNA_GIT_MIRROR="https://mirrors.tuna.tsinghua.edu.cn/git/homebrew"
 HOMEBREW_INSTALL_SCRIPT_URL="https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh"
 
@@ -181,6 +182,13 @@ link_ghostty_config() {
     "Ghostty config"
 }
 
+link_mise_config() {
+  link_managed_file \
+    "${REPO_MISE_CONFIG}" \
+    "${LOCAL_MISE_CONFIG}" \
+    "mise config"
+}
+
 install_brew_bundle() {
   if [[ ! -f "${BREWFILE}" ]]; then
     printf 'Brewfile not found: %s\n' "${BREWFILE}" >&2
@@ -266,10 +274,10 @@ run_1password_checkpoint() {
   printf '\n'
   printf '1Password CLI is installed but not signed in yet.\n'
   printf 'This is the manual checkpoint for a new Mac before any secret-backed setup.\n'
-  printf 'Press Enter to run `op signin` now, or type \"skip\" to continue without signing in: '
+  printf 'Run 1Password CLI sign-in now? [y/N]: '
   IFS= read -r choice
 
-  if [[ "${choice}" == "skip" ]]; then
+  if [[ ! "${choice}" =~ ^[Yy]$ ]]; then
     log "Skipping 1Password sign-in checkpoint by user request"
     return
   fi
@@ -290,66 +298,6 @@ run_1password_checkpoint() {
   log "1Password CLI sign-in complete"
 }
 
-run_spotify_login_checkpoint() {
-  if [[ ! -d "/Applications/Spotify.app" ]]; then
-    log "Spotify is not installed, skipping Spotify login checkpoint"
-    return
-  fi
-
-  if ! command -v op >/dev/null 2>&1; then
-    log "1Password CLI is not installed, skipping Spotify login checkpoint"
-    return
-  fi
-
-  if ! op whoami >/dev/null 2>&1; then
-    log "1Password CLI is not signed in, skipping Spotify login checkpoint"
-    return
-  fi
-
-  if [[ ! -t 0 ]]; then
-    log "Skipping Spotify login checkpoint because this shell is non-interactive"
-    return
-  fi
-
-  local choice
-  printf '\n'
-  printf 'Spotify is installed and 1Password CLI is signed in.\n'
-  printf 'This checkpoint can open Spotify and 1Password so you can finish login now.\n'
-  printf 'Press Enter to continue, or type "skip" to do this later: '
-  IFS= read -r choice
-
-  if [[ "${choice}" == "skip" ]]; then
-    log "Skipping Spotify login checkpoint by user request"
-    return
-  fi
-
-  log "Opening Spotify"
-  open -a "Spotify"
-
-  if [[ -d "/Applications/1Password.app" ]]; then
-    log "Opening 1Password"
-    open -a "1Password"
-  fi
-
-  printf '\n'
-  printf 'Use 1Password to fill your Spotify credentials in the Spotify app.\n'
-  printf 'Complete any 2FA or device approval steps if Spotify asks for them.\n'
-  printf 'Press Enter when you are done so bootstrap can continue: '
-  IFS= read -r choice
-
-  log "Spotify login checkpoint complete"
-}
-
-install_mise_toolchains() {
-  if ! command -v mise >/dev/null 2>&1; then
-    printf 'mise is required but was not found after Brewfile install.\n' >&2
-    exit 1
-  fi
-
-  log "Installing latest Node.js and Bun with mise"
-  mise use -g -y node@latest bun@latest
-}
-
 install_mise_node_tools() {
   if ! command -v mise >/dev/null 2>&1; then
     printf 'mise is required but was not found after Brewfile install.\n' >&2
@@ -364,8 +312,13 @@ install_mise_node_tools() {
   log "Trusting repo-managed mise config"
   mise trust "${REPO_MISE_CONFIG}"
 
-  log "Installing repo-managed mise tools"
-  mise install -C "${CONFIGS_DIR}/mise" -y
+  log "Installing repo-managed mise tools from global config"
+  if mise install -C "${CONFIGS_DIR}/mise" -y; then
+    return
+  fi
+
+  log "Retrying mise install with source builds enabled"
+  MISE_ALL_COMPILE=1 mise install -C "${CONFIGS_DIR}/mise" -y
 }
 
 main() {
@@ -379,10 +332,9 @@ main() {
   link_zsh_plugins
   link_starship_config
   link_ghostty_config
+  link_mise_config
   install_brew_bundle
   run_1password_checkpoint
-  run_spotify_login_checkpoint
-  install_mise_toolchains
   install_mise_node_tools
   log "Bootstrap complete"
 }

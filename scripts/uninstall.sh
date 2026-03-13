@@ -11,6 +11,7 @@ REPO_ZSHRC="${CONFIGS_DIR}/zsh/.zshrc"
 REPO_ZSH_PLUGINS="${CONFIGS_DIR}/zsh/.zsh_plugins.txt"
 REPO_STARSHIP_CONFIG="${CONFIGS_DIR}/starship/starship.toml"
 REPO_GHOSTTY_DIR="${CONFIGS_DIR}/ghostty"
+REPO_MISE_CONFIG="${CONFIGS_DIR}/mise/mise.toml"
 LOCAL_ZPROFILE="${HOME}/.zprofile"
 LOCAL_ZSHRC="${HOME}/.zshrc"
 LOCAL_ZSH_PLUGINS="${HOME}/.zsh_plugins.txt"
@@ -18,6 +19,7 @@ LOCAL_ZSH_PLUGIN_BUNDLE="${HOME}/.zsh_plugins.zsh"
 LOCAL_ANTIDOTE_DIR="${HOME}/Library/Caches/antidote"
 LOCAL_STARSHIP_CONFIG="${HOME}/.config/starship.toml"
 LOCAL_GHOSTTY_DIR="${HOME}/.config/ghostty"
+LOCAL_MISE_CONFIG="${HOME}/.config/mise/config.toml"
 LEGACY_ZPROFILE_BACKUP="${HOME}/.zprofile.pre-dotfiles-backup"
 LEGACY_ZSHRC_BACKUP="${HOME}/.zshrc.pre-dotfiles-backup"
 LEGACY_ZSH_PLUGINS_BACKUP="${HOME}/.zsh_plugins.txt.pre-dotfiles-backup"
@@ -212,6 +214,13 @@ cleanup_ghostty_config() {
     "Ghostty config"
 }
 
+cleanup_mise_config() {
+  cleanup_managed_file \
+    "${REPO_MISE_CONFIG}" \
+    "${LOCAL_MISE_CONFIG}" \
+    "mise config"
+}
+
 cleanup_legacy_backups() {
   local legacy_path
   for legacy_path in \
@@ -253,6 +262,7 @@ cleanup_managed_configs() {
 
   cleanup_starship_config
   cleanup_ghostty_config
+  cleanup_mise_config
   cleanup_zprofile
   cleanup_zshrc
   cleanup_zsh_plugins
