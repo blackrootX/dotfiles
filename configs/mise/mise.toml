@@ -1,3 +1,7 @@
 [tools]
+"bun" = "latest"
+"node" = "latest"
+"python" = "latest"
+"pipx:thefuck" = "latest"
 "npm:typescript" = "latest"
 "npm:typescript-language-server" = "latest"

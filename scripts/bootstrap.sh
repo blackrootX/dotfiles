@@ -275,9 +275,15 @@ run_1password_checkpoint() {
   fi
 
   log "Starting 1Password CLI sign-in"
-  if ! op signin; then
+  if ! eval "$(op signin)"; then
     printf '1Password CLI sign-in did not complete successfully.\n' >&2
-    printf 'Rerun bootstrap later or sign in manually with `op signin`.\n' >&2
+    printf 'Rerun bootstrap later or sign in manually with `eval $(op signin)`.\n' >&2
+    exit 1
+  fi
+
+  if ! op whoami >/dev/null 2>&1; then
+    printf '1Password CLI sign-in did not leave an active session.\n' >&2
+    printf 'Rerun bootstrap later or sign in manually with `eval $(op signin)`.\n' >&2
     exit 1
   fi
 
