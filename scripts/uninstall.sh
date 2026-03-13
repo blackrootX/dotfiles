@@ -11,7 +11,7 @@ REPO_ZSHRC="${CONFIGS_DIR}/zsh/.zshrc"
 REPO_ZSH_PLUGINS="${CONFIGS_DIR}/zsh/.zsh_plugins.txt"
 REPO_STARSHIP_CONFIG="${CONFIGS_DIR}/starship/starship.toml"
 REPO_GHOSTTY_DIR="${CONFIGS_DIR}/ghostty"
-REPO_MISE_CONFIG="${CONFIGS_DIR}/mise/mise.toml"
+REPO_MISE_CONFIG="${CONFIGS_DIR}/mise/config.toml"
 LOCAL_ZPROFILE="${HOME}/.zprofile"
 LOCAL_ZSHRC="${HOME}/.zshrc"
 LOCAL_ZSH_PLUGINS="${HOME}/.zsh_plugins.txt"
@@ -74,6 +74,7 @@ uninstall_tracked_brewfile_entries() {
 
   local -a formulae=()
   local -a casks=()
+  local line
 
   while IFS= read -r line || [[ -n "${line}" ]]; do
     if [[ "${line}" =~ ^[[:space:]]*brew[[:space:]]+\"([^\"]+)\" ]]; then
@@ -86,18 +87,6 @@ uninstall_tracked_brewfile_entries() {
     fi
   done < "${BREWFILE}"
 
-  local formula
-  for (( idx=${#formulae[@]}-1; idx>=0; idx-- )); do
-    formula="${formulae[idx]}"
-
-    if brew list --formula "${formula}" >/dev/null 2>&1; then
-      log "Uninstalling tracked formula: ${formula}"
-      brew uninstall --formula "${formula}"
-    else
-      log "Tracked formula not installed: ${formula}"
-    fi
-  done
-
   local cask
   for (( idx=${#casks[@]}-1; idx>=0; idx-- )); do
     cask="${casks[idx]}"
@@ -107,6 +96,18 @@ uninstall_tracked_brewfile_entries() {
       brew uninstall --cask "${cask}"
     else
       log "Tracked cask not installed: ${cask}"
+    fi
+  done
+
+  local formula
+  for (( idx=${#formulae[@]}-1; idx>=0; idx-- )); do
+    formula="${formulae[idx]}"
+
+    if brew list --formula "${formula}" >/dev/null 2>&1; then
+      log "Uninstalling tracked formula: ${formula}"
+      brew uninstall --formula "${formula}"
+    else
+      log "Tracked formula not installed: ${formula}"
     fi
   done
 }
@@ -282,8 +283,8 @@ main() {
   fi
 
   uninstall_tracked_brewfile_entries
-  uninstall_remaining_formulae
   uninstall_casks
+  uninstall_remaining_formulae
   uninstall_homebrew
   log "Uninstall complete"
 }

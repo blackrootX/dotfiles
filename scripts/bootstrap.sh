@@ -11,7 +11,7 @@ REPO_ZSHRC="${CONFIGS_DIR}/zsh/.zshrc"
 REPO_ZSH_PLUGINS="${CONFIGS_DIR}/zsh/.zsh_plugins.txt"
 REPO_STARSHIP_CONFIG="${CONFIGS_DIR}/starship/starship.toml"
 REPO_GHOSTTY_DIR="${CONFIGS_DIR}/ghostty"
-REPO_MISE_CONFIG="${CONFIGS_DIR}/mise/mise.toml"
+REPO_MISE_CONFIG="${CONFIGS_DIR}/mise/config.toml"
 LOCAL_ZPROFILE="${HOME}/.zprofile"
 LOCAL_ZSHRC="${HOME}/.zshrc"
 LOCAL_ZSH_PLUGINS="${HOME}/.zsh_plugins.txt"
@@ -311,6 +311,11 @@ install_mise_node_tools() {
 
   log "Trusting repo-managed mise config"
   mise trust "${REPO_MISE_CONFIG}"
+
+  if grep -q '"pipx:' "${REPO_MISE_CONFIG}" && ! command -v pipx >/dev/null 2>&1; then
+    log "Installing pipx for repo-managed mise pipx tools"
+    brew install pipx
+  fi
 
   log "Installing repo-managed mise tools from global config"
   if mise install -C "${CONFIGS_DIR}/mise" -y; then
