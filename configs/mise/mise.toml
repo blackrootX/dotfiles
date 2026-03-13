@@ -1,0 +1,3 @@
+[tools]
+"npm:typescript" = "latest"
+"npm:typescript-language-server" = "latest"

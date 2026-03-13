@@ -23,6 +23,7 @@ LEGACY_ZSHRC_BACKUP="${HOME}/.zshrc.pre-dotfiles-backup"
 LEGACY_ZSH_PLUGINS_BACKUP="${HOME}/.zsh_plugins.txt.pre-dotfiles-backup"
 LEGACY_STARSHIP_CONFIG_BACKUP="${HOME}/.config/starship.toml.pre-dotfiles-backup"
 HOMEBREW_TUNA_GIT_MIRROR="https://mirrors.tuna.tsinghua.edu.cn/git/homebrew"
+HOMEBREW_UNINSTALL_SCRIPT_URL="https://raw.githubusercontent.com/Homebrew/install/HEAD/uninstall.sh"
 CLEANUP_COMPLETE=0
 
 log() {
@@ -145,13 +146,13 @@ uninstall_casks() {
 }
 
 uninstall_homebrew() {
-  local installer_dir
-  installer_dir="$(mktemp -d)"
+  local uninstall_script
+  uninstall_script="$(mktemp)"
 
   log "Uninstalling Homebrew"
-  git clone --depth=1 "${HOMEBREW_TUNA_GIT_MIRROR}/install.git" "${installer_dir}/brew-install"
-  NONINTERACTIVE=1 /bin/bash "${installer_dir}/brew-install/uninstall.sh"
-  rm -rf "${installer_dir}"
+  curl -fsSL "${HOMEBREW_UNINSTALL_SCRIPT_URL}" -o "${uninstall_script}"
+  NONINTERACTIVE=1 /bin/bash "${uninstall_script}"
+  rm -f "${uninstall_script}"
 }
 
 cleanup_managed_file() {
@@ -226,14 +227,26 @@ cleanup_legacy_backups() {
 }
 
 print_shell_restart_notice() {
-  cat <<'EOF'
+  local exit_status="$1"
+
+  if [[ "${exit_status}" -eq 0 ]]; then
+    cat <<'EOF'
 [uninstall] Homebrew removal is complete.
 [uninstall] If this current shell still shows missing-command errors for old Homebrew tools,
 [uninstall] start a fresh shell with: exec /bin/zsh -f
 EOF
+    return
+  fi
+
+  cat <<'EOF'
+[uninstall] Cleanup finished, but Homebrew uninstall did not complete successfully.
+[uninstall] If Homebrew commands are still available in this shell, the uninstall step likely failed before removal finished.
+EOF
 }
 
 cleanup_managed_configs() {
+  local exit_status=$?
+
   if [[ "${CLEANUP_COMPLETE}" -eq 1 ]]; then
     return
   fi
@@ -245,7 +258,7 @@ cleanup_managed_configs() {
   cleanup_zsh_plugins
   cleanup_antidote_artifacts
   cleanup_legacy_backups
-  print_shell_restart_notice
+  print_shell_restart_notice "${exit_status}"
   CLEANUP_COMPLETE=1
 }
 

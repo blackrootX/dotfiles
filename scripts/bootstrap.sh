@@ -11,12 +11,14 @@ REPO_ZSHRC="${CONFIGS_DIR}/zsh/.zshrc"
 REPO_ZSH_PLUGINS="${CONFIGS_DIR}/zsh/.zsh_plugins.txt"
 REPO_STARSHIP_CONFIG="${CONFIGS_DIR}/starship/starship.toml"
 REPO_GHOSTTY_DIR="${CONFIGS_DIR}/ghostty"
+REPO_MISE_CONFIG="${CONFIGS_DIR}/mise/mise.toml"
 LOCAL_ZPROFILE="${HOME}/.zprofile"
 LOCAL_ZSHRC="${HOME}/.zshrc"
 LOCAL_ZSH_PLUGINS="${HOME}/.zsh_plugins.txt"
 LOCAL_STARSHIP_CONFIG="${HOME}/.config/starship.toml"
 LOCAL_GHOSTTY_DIR="${HOME}/.config/ghostty"
 HOMEBREW_TUNA_GIT_MIRROR="https://mirrors.tuna.tsinghua.edu.cn/git/homebrew"
+HOMEBREW_INSTALL_SCRIPT_URL="https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh"
 
 log() {
   printf '[bootstrap] %s\n' "$1"
@@ -73,19 +75,19 @@ install_homebrew() {
     return
   fi
 
-  local installer_dir
-  installer_dir="$(mktemp -d)"
+  local installer_script
+  installer_script="$(mktemp)"
 
   log "Installing Homebrew"
   export HOMEBREW_API_DOMAIN="https://mirrors.tuna.tsinghua.edu.cn/homebrew-bottles/api"
   export HOMEBREW_BOTTLE_DOMAIN="https://mirrors.tuna.tsinghua.edu.cn/homebrew-bottles"
-  export HOMEBREW_BREW_GIT_REMOTE="${HOMEBREW_TUNA_GIT_MIRROR}/brew.git"
-  export HOMEBREW_CORE_GIT_REMOTE="${HOMEBREW_TUNA_GIT_MIRROR}/homebrew-core.git"
   export HOMEBREW_INSTALL_FROM_API=1
+  unset HOMEBREW_BREW_GIT_REMOTE
+  unset HOMEBREW_CORE_GIT_REMOTE
 
-  git clone --depth=1 "${HOMEBREW_TUNA_GIT_MIRROR}/install.git" "${installer_dir}/brew-install"
-  NONINTERACTIVE=1 /bin/bash "${installer_dir}/brew-install/install.sh"
-  rm -rf "${installer_dir}"
+  curl -fsSL "${HOMEBREW_INSTALL_SCRIPT_URL}" -o "${installer_script}"
+  NONINTERACTIVE=1 /bin/bash "${installer_script}"
+  rm -f "${installer_script}"
   ensure_brew_in_path
 }
 
@@ -228,7 +230,7 @@ install_brew_bundle() {
     if brew list --formula "${item}" >/dev/null 2>&1; then
       log "Formula already installed: ${item}"
     else
-      brew install --verbose "${item}"
+      brew install --formula --verbose "${item}"
     fi
   done
 
@@ -342,6 +344,24 @@ install_mise_toolchains() {
   mise use -g -y node@latest bun@latest
 }
 
+install_mise_node_tools() {
+  if ! command -v mise >/dev/null 2>&1; then
+    printf 'mise is required but was not found after Brewfile install.\n' >&2
+    exit 1
+  fi
+
+  if [[ ! -f "${REPO_MISE_CONFIG}" ]]; then
+    printf 'mise config not found: %s\n' "${REPO_MISE_CONFIG}" >&2
+    exit 1
+  fi
+
+  log "Trusting repo-managed mise config"
+  mise trust "${REPO_MISE_CONFIG}"
+
+  log "Installing repo-managed mise tools"
+  mise install -C "${CONFIGS_DIR}/mise" -y
+}
+
 main() {
   require_macos
   refresh_sudo
@@ -357,6 +377,7 @@ main() {
   run_1password_checkpoint
   run_spotify_login_checkpoint
   install_mise_toolchains
+  install_mise_node_tools
   log "Bootstrap complete"
 }
 
