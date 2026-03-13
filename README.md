@@ -75,11 +75,11 @@ Remove the managed setup:
   - `~/.config/gh/config.yml`
   - `~/.ssh/config`
   - tracked `~/.ssh/*.pub` files
-  - rendered `~/.config/zed/settings.json`
-  - `~/.config/zed/keymap.json`
 - installs Homebrew taps, formulae, and casks from `Brewfile` with per-item progress logs
 - pre-generates the Antidote plugin bundle after `antidote` is installed from `Brewfile`
 - offers an interactive `y/N` 1Password CLI sign-in checkpoint
+- renders `~/.config/zed/settings.json`
+- links `~/.config/zed/keymap.json`
 - syncs tracked SSH private keys from matching 1Password `SSH Key` items into `~/.ssh/`
 - trusts the repo-managed `mise` config and installs its declared tools
 - retries `mise` installs with `MISE_ALL_COMPILE=1` if a prebuilt runtime download fails
@@ -171,7 +171,7 @@ This means:
 - `configs/zed/settings.json.tmpl` is rendered to `~/.config/zed/settings.json`
 - `configs/zed/keymap.json` is linked to `~/.config/zed/keymap.json`
 - other local Zed state such as `conversations/`, `prompts/`, and `themes/` stays outside the repo
-- bootstrap fills the Context7 key from the `Context7 API Key` item in the `Employee` 1Password vault when available
+- after the 1Password CLI sign-in checkpoint, bootstrap fills the Context7 key from the `Context7 API Key` item in the `Employee` 1Password vault when available
 - the tracked settings template intentionally does not include a live `context7_api_key`
 
 ## SSH Scope

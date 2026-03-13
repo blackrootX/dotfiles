@@ -269,6 +269,11 @@ sync_ssh_private_keys_from_1password() {
     return
   fi
 
+  if ! command -v ssh-keygen >/dev/null 2>&1; then
+    log "ssh-keygen is unavailable, skipping SSH private key sync from 1Password"
+    return
+  fi
+
   mkdir -p "${HOME}/.ssh"
   chmod 700 "${HOME}/.ssh"
 
@@ -281,6 +286,7 @@ import os
 import stat
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 
@@ -295,16 +301,8 @@ def read_json(*args: str):
 def normalize_public_key(raw: str) -> str:
     parts = raw.strip().split()
     if len(parts) < 2:
-      return raw.strip()
+        return raw.strip()
     return " ".join(parts[:2])
-
-
-def find_field(item: dict, field_label: str):
-    for field in item.get("fields", []):
-        label = (field.get("label") or "").strip().lower()
-        if label == field_label:
-            return field
-    return None
 
 
 pairs = []
@@ -323,18 +321,40 @@ items = read_json("op", "item", "list", "--categories", "SSH Key", "--format", "
 matches = {}
 
 for item in items:
-    detail = read_json("op", "item", "get", item["id"], "--format", "json")
-    public_field = find_field(detail, "public key")
-    private_field = find_field(detail, "private key")
-    if not public_field or not private_field:
+    vault = item.get("vault") or {}
+    vault_id = vault.get("id")
+    item_id = item.get("id")
+    title = item.get("title", item_id)
+    if not vault_id or not item_id:
         continue
 
-    public_value = normalize_public_key(public_field.get("value", ""))
-    private_reference = private_field.get("reference")
-    if public_value and private_reference:
+    private_reference = f"op://{vault_id}/{item_id}/private key?ssh-format=openssh"
+
+    try:
+        private_key = run("op", "read", private_reference)
+    except subprocess.CalledProcessError:
+        continue
+
+    with tempfile.NamedTemporaryFile("w", delete=False) as handle:
+        handle.write(private_key)
+        temp_private_path = handle.name
+
+    os.chmod(temp_private_path, stat.S_IRUSR | stat.S_IWUSR)
+    try:
+        public_value = normalize_public_key(
+            run("ssh-keygen", "-y", "-f", temp_private_path)
+        )
+    except subprocess.CalledProcessError:
+        os.unlink(temp_private_path)
+        continue
+    finally:
+        if os.path.exists(temp_private_path):
+            os.unlink(temp_private_path)
+
+    if public_value:
         matches[public_value] = {
-            "title": item.get("title", item["id"]),
-            "reference": private_reference,
+            "title": title,
+            "private_key": private_key,
         }
 
 missing = []
@@ -346,8 +366,7 @@ for public_path, private_path in pairs:
         missing.append(public_path.name)
         continue
 
-    private_key = run("op", "read", f'{match["reference"]}?ssh-format=openssh')
-    private_path.write_text(private_key)
+    private_path.write_text(match["private_key"])
     os.chmod(private_path, stat.S_IRUSR | stat.S_IWUSR)
     print(f"[bootstrap] Synced {private_path.name} from 1Password item '{match['title']}'")
 
@@ -609,11 +628,11 @@ main() {
   link_gh_config
   link_ssh_config
   link_ssh_public_keys
-  link_zed_settings
-  link_zed_keymap
   install_brew_bundle
   prime_antidote_bundle
   run_1password_checkpoint
+  link_zed_settings
+  link_zed_keymap
   sync_ssh_private_keys_from_1password
   run_1password_ssh_agent_checkpoint
   install_mise_node_tools
