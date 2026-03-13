@@ -22,6 +22,16 @@ log() {
   printf '[bootstrap] %s\n' "$1"
 }
 
+refresh_sudo() {
+  if [[ ! -t 0 ]]; then
+    log "Skipping sudo credential refresh because this shell is non-interactive"
+    return
+  fi
+
+  log "Refreshing sudo credentials"
+  sudo -v
+}
+
 require_macos() {
   if [[ "$(uname -s)" != "Darwin" ]]; then
     printf 'This script supports macOS only.\n' >&2
@@ -175,8 +185,63 @@ install_brew_bundle() {
     exit 1
   fi
 
-  log "Installing Homebrew bundle from ${BREWFILE}"
-  brew bundle install --verbose --file="${BREWFILE}"
+  local -a taps=()
+  local -a formulae=()
+  local -a casks=()
+  local line
+
+  while IFS= read -r line || [[ -n "${line}" ]]; do
+    if [[ "${line}" =~ ^[[:space:]]*tap[[:space:]]+\"([^\"]+)\" ]]; then
+      taps+=("${BASH_REMATCH[1]}")
+      continue
+    fi
+
+    if [[ "${line}" =~ ^[[:space:]]*brew[[:space:]]+\"([^\"]+)\" ]]; then
+      formulae+=("${BASH_REMATCH[1]}")
+      continue
+    fi
+
+    if [[ "${line}" =~ ^[[:space:]]*cask[[:space:]]+\"([^\"]+)\" ]]; then
+      casks+=("${BASH_REMATCH[1]}")
+    fi
+  done < "${BREWFILE}"
+
+  local idx
+  local total
+  local item
+
+  total="${#taps[@]}"
+  for (( idx=0; idx<total; idx++ )); do
+    item="${taps[idx]}"
+    log "Tap [$((idx + 1))/${total}]: ${item}"
+    if brew tap | grep -qx "${item}"; then
+      log "Tap already installed: ${item}"
+    else
+      brew tap "${item}"
+    fi
+  done
+
+  total="${#formulae[@]}"
+  for (( idx=0; idx<total; idx++ )); do
+    item="${formulae[idx]}"
+    log "Formula [$((idx + 1))/${total}]: ${item}"
+    if brew list --formula "${item}" >/dev/null 2>&1; then
+      log "Formula already installed: ${item}"
+    else
+      brew install --verbose "${item}"
+    fi
+  done
+
+  total="${#casks[@]}"
+  for (( idx=0; idx<total; idx++ )); do
+    item="${casks[idx]}"
+    log "Cask [$((idx + 1))/${total}]: ${item}"
+    if brew list --cask "${item}" >/dev/null 2>&1; then
+      log "Cask already installed: ${item}"
+    else
+      brew install --cask --verbose "${item}"
+    fi
+  done
 }
 
 run_1password_checkpoint() {
@@ -279,6 +344,7 @@ install_mise_toolchains() {
 
 main() {
   require_macos
+  refresh_sudo
   install_homebrew
   ensure_brew_in_path
   configure_homebrew_china_mirror
