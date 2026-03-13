@@ -25,8 +25,12 @@ This repo manages three main things:
 - `configs/ghostty/`: linked to `~/.config/ghostty`
 - `configs/mise/config.toml`: linked to `~/.config/mise/config.toml`
 - `configs/eza/`: linked to `~/.config/eza`
-- `git/.gitconfig`: linked to `~/.gitconfig`
-- `git/config.yml`: linked to `~/.config/gh/config.yml`
+- `configs/git/.gitconfig`: linked to `~/.gitconfig`
+- `configs/git/config.yml`: linked to `~/.config/gh/config.yml`
+- `configs/ssh/config`: linked to `~/.ssh/config`
+- `configs/ssh/*.pub`: linked to matching files in `~/.ssh/`
+- `configs/zed/settings.json.tmpl`: rendered to `~/.config/zed/settings.json`
+- `configs/zed/keymap.json`: linked to `~/.config/zed/keymap.json`
 - `scripts/bootstrap.sh`: installs Homebrew if needed, links managed config, installs Brewfile entries, and installs repo-managed `mise` tools
 - `scripts/install-apps.sh`: installs tracked Mac App Store apps with `mas`
 - `scripts/uninstall.sh`: removes tracked Homebrew software, uninstalls Homebrew, and cleans up repo-managed symlinks
@@ -69,6 +73,10 @@ Remove the managed setup:
   - `~/.config/eza`
   - `~/.gitconfig`
   - `~/.config/gh/config.yml`
+  - `~/.ssh/config`
+  - tracked `~/.ssh/*.pub` files
+  - rendered `~/.config/zed/settings.json`
+  - `~/.config/zed/keymap.json`
 - installs Homebrew taps, formulae, and casks from `Brewfile` with per-item progress logs
 - offers an interactive `y/N` 1Password CLI sign-in checkpoint
 - trusts the repo-managed `mise` config and installs its declared tools
@@ -94,6 +102,8 @@ That file currently manages:
 - `bun`
 - `node`
 - `python`
+- `uv`
+- `pipx:browser-use`
 - `pipx:thefuck`
 - `npm:typescript`
 - `npm:typescript-language-server`
@@ -102,6 +112,7 @@ This means:
 
 - the repo is the source of truth for global `mise` tool definitions
 - `mise activate zsh` in `configs/zsh/.zshrc` exposes those tools in your shell
+- bootstrap also runs `uvx browser-use install` so Browser Use's Chromium dependency is installed on a new Mac
 - `thefuck` is initialized after `mise` activation so the alias works with the `mise`-managed install
 
 ## Eza Theme Scope
@@ -111,7 +122,6 @@ The repo-managed `eza` theme bundle lives at `configs/eza/` and is linked to `~/
 This means:
 
 - the repo carries the upstream theme files under `configs/eza/themes/`
-- `configs/zsh/.zshrc` already exports `EZA_CONFIG_DIR="$HOME/.config/eza"`
 - `configs/zsh/.zshrc` already exports `EZA_COLORS_THEME="dracula"`
 - a new Mac can use the Dracula theme without depending on any other local repo or symlink
 
@@ -145,8 +155,36 @@ App Store sign-in is intentionally kept as a manual prerequisite.
   - `eza` config
   - Git config
   - GitHub CLI config
+  - SSH config
+  - tracked SSH public keys
+  - Zed settings
+  - Zed keymap
 - removes generated Antidote artifacts
 - prints a success or failure notice that reflects the actual uninstall result
+
+## Zed Scope
+
+The repo-managed Zed config lives at `configs/zed/`.
+
+This means:
+
+- `configs/zed/settings.json.tmpl` is rendered to `~/.config/zed/settings.json`
+- `configs/zed/keymap.json` is linked to `~/.config/zed/keymap.json`
+- other local Zed state such as `conversations/`, `prompts/`, and `themes/` stays outside the repo
+- bootstrap fills the Context7 key from the `Context7 API Key` item in the `Employee` 1Password vault when available
+- the tracked settings template intentionally does not include a live `context7_api_key`
+
+## SSH Scope
+
+The repo-managed SSH config lives at `configs/ssh/`.
+
+This means:
+
+- `configs/ssh/config` is linked to `~/.ssh/config`
+- tracked public keys in `configs/ssh/*.pub` are linked to matching files in `~/.ssh/`
+- the SSH config is set up for the 1Password SSH agent and uses the tracked public keys for host selection
+- private keys and host trust files such as `known_hosts` stay local and are not tracked
+- on a new Mac, sign in to the 1Password desktop app and enable SSH agent support so the socket at `~/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock` is available
 
 ## Idempotency
 
@@ -158,5 +196,5 @@ App Store sign-in is intentionally kept as a manual prerequisite.
 
 - `configs/zsh/.zshrc` sources `~/.zshrc.local` when present
 - `configs/zsh/.zprofile` sources `~/.zprofile.local` when present
-- `git/config.yml` covers GitHub CLI preferences only; keep `~/.config/gh/hosts.yml` local
+- `configs/git/config.yml` covers GitHub CLI preferences only; keep `~/.config/gh/hosts.yml` local
 - secrets should stay out of tracked files; prefer local files or `op`-backed runtime injection for secret material

@@ -6,7 +6,6 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 BREWFILE="${REPO_ROOT}/Brewfile"
 CONFIGS_DIR="${REPO_ROOT}/configs"
-GIT_CONFIG_DIR="${REPO_ROOT}/git"
 REPO_ZPROFILE="${CONFIGS_DIR}/zsh/.zprofile"
 REPO_ZSHRC="${CONFIGS_DIR}/zsh/.zshrc"
 REPO_ZSH_PLUGINS="${CONFIGS_DIR}/zsh/.zsh_plugins.txt"
@@ -14,8 +13,15 @@ REPO_STARSHIP_CONFIG="${CONFIGS_DIR}/starship/starship.toml"
 REPO_GHOSTTY_DIR="${CONFIGS_DIR}/ghostty"
 REPO_MISE_CONFIG="${CONFIGS_DIR}/mise/config.toml"
 REPO_EZA_CONFIG_DIR="${CONFIGS_DIR}/eza"
-REPO_GITCONFIG="${GIT_CONFIG_DIR}/.gitconfig"
-REPO_GH_CONFIG="${GIT_CONFIG_DIR}/config.yml"
+REPO_GIT_CONFIG_DIR="${CONFIGS_DIR}/git"
+REPO_GITCONFIG="${REPO_GIT_CONFIG_DIR}/.gitconfig"
+REPO_GH_CONFIG="${REPO_GIT_CONFIG_DIR}/config.yml"
+REPO_SSH_CONFIG_DIR="${CONFIGS_DIR}/ssh"
+REPO_SSH_CONFIG="${REPO_SSH_CONFIG_DIR}/config"
+REPO_SSH_PUBLIC_KEY_ED25519="${REPO_SSH_CONFIG_DIR}/id_ed25519.pub"
+REPO_SSH_PUBLIC_KEY_MACAIR="${REPO_SSH_CONFIG_DIR}/{macair}.pub"
+REPO_ZED_SETTINGS_TEMPLATE="${CONFIGS_DIR}/zed/settings.json.tmpl"
+REPO_ZED_KEYMAP="${CONFIGS_DIR}/zed/keymap.json"
 LOCAL_ZPROFILE="${HOME}/.zprofile"
 LOCAL_ZSHRC="${HOME}/.zshrc"
 LOCAL_ZSH_PLUGINS="${HOME}/.zsh_plugins.txt"
@@ -27,6 +33,11 @@ LOCAL_MISE_CONFIG="${HOME}/.config/mise/config.toml"
 LOCAL_EZA_CONFIG_DIR="${HOME}/.config/eza"
 LOCAL_GITCONFIG="${HOME}/.gitconfig"
 LOCAL_GH_CONFIG="${HOME}/.config/gh/config.yml"
+LOCAL_SSH_CONFIG="${HOME}/.ssh/config"
+LOCAL_SSH_PUBLIC_KEY_ED25519="${HOME}/.ssh/id_ed25519.pub"
+LOCAL_SSH_PUBLIC_KEY_MACAIR="${HOME}/.ssh/{macair}.pub"
+LOCAL_ZED_SETTINGS="${HOME}/.config/zed/settings.json"
+LOCAL_ZED_KEYMAP="${HOME}/.config/zed/keymap.json"
 LEGACY_ZPROFILE_BACKUP="${HOME}/.zprofile.pre-dotfiles-backup"
 LEGACY_ZSHRC_BACKUP="${HOME}/.zshrc.pre-dotfiles-backup"
 LEGACY_ZSH_PLUGINS_BACKUP="${HOME}/.zsh_plugins.txt.pre-dotfiles-backup"
@@ -250,6 +261,39 @@ cleanup_gh_config() {
     "GitHub CLI config"
 }
 
+cleanup_ssh_config() {
+  cleanup_managed_file \
+    "${REPO_SSH_CONFIG}" \
+    "${LOCAL_SSH_CONFIG}" \
+    "SSH config"
+}
+
+cleanup_ssh_public_keys() {
+  cleanup_managed_file \
+    "${REPO_SSH_PUBLIC_KEY_ED25519}" \
+    "${LOCAL_SSH_PUBLIC_KEY_ED25519}" \
+    "SSH public key id_ed25519.pub"
+
+  cleanup_managed_file \
+    "${REPO_SSH_PUBLIC_KEY_MACAIR}" \
+    "${LOCAL_SSH_PUBLIC_KEY_MACAIR}" \
+    "SSH public key {macair}.pub"
+}
+
+cleanup_zed_settings() {
+  if [[ -f "${LOCAL_ZED_SETTINGS}" ]] && grep -q "Managed by dotfiles bootstrap" "${LOCAL_ZED_SETTINGS}"; then
+    log "Removing repo-managed Zed settings file"
+    rm -f "${LOCAL_ZED_SETTINGS}"
+  fi
+}
+
+cleanup_zed_keymap() {
+  cleanup_managed_file \
+    "${REPO_ZED_KEYMAP}" \
+    "${LOCAL_ZED_KEYMAP}" \
+    "Zed keymap"
+}
+
 cleanup_legacy_backups() {
   local legacy_path
   for legacy_path in \
@@ -295,6 +339,10 @@ cleanup_managed_configs() {
   cleanup_eza_config
   cleanup_gitconfig
   cleanup_gh_config
+  cleanup_ssh_config
+  cleanup_ssh_public_keys
+  cleanup_zed_settings
+  cleanup_zed_keymap
   cleanup_zprofile
   cleanup_zshrc
   cleanup_zsh_plugins

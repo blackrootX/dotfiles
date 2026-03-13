@@ -1,0 +1,19 @@
+Host 43.153.223.158
+  HostName 43.153.223.158
+  User ubuntu
+
+Host github.com
+HostName github.com
+Port 22
+User git
+IdentityFile ~/.ssh/id_ed25519.pub
+IdentitiesOnly yes
+
+Host bitbucket.org
+HostName altssh.bitbucket.org
+Port 443
+IdentityFile ~/.ssh/{macair}.pub
+IdentitiesOnly yes
+
+Host *
+  IdentityAgent "~/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock"

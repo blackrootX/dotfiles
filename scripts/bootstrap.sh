@@ -6,7 +6,6 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 BREWFILE="${REPO_ROOT}/Brewfile"
 CONFIGS_DIR="${REPO_ROOT}/configs"
-GIT_CONFIG_DIR="${REPO_ROOT}/git"
 REPO_ZPROFILE="${CONFIGS_DIR}/zsh/.zprofile"
 REPO_ZSHRC="${CONFIGS_DIR}/zsh/.zshrc"
 REPO_ZSH_PLUGINS="${CONFIGS_DIR}/zsh/.zsh_plugins.txt"
@@ -14,8 +13,15 @@ REPO_STARSHIP_CONFIG="${CONFIGS_DIR}/starship/starship.toml"
 REPO_GHOSTTY_DIR="${CONFIGS_DIR}/ghostty"
 REPO_MISE_CONFIG="${CONFIGS_DIR}/mise/config.toml"
 REPO_EZA_CONFIG_DIR="${CONFIGS_DIR}/eza"
-REPO_GITCONFIG="${GIT_CONFIG_DIR}/.gitconfig"
-REPO_GH_CONFIG="${GIT_CONFIG_DIR}/config.yml"
+REPO_GIT_CONFIG_DIR="${CONFIGS_DIR}/git"
+REPO_GITCONFIG="${REPO_GIT_CONFIG_DIR}/.gitconfig"
+REPO_GH_CONFIG="${REPO_GIT_CONFIG_DIR}/config.yml"
+REPO_SSH_CONFIG_DIR="${CONFIGS_DIR}/ssh"
+REPO_SSH_CONFIG="${REPO_SSH_CONFIG_DIR}/config"
+REPO_SSH_PUBLIC_KEY_ED25519="${REPO_SSH_CONFIG_DIR}/id_ed25519.pub"
+REPO_SSH_PUBLIC_KEY_MACAIR="${REPO_SSH_CONFIG_DIR}/{macair}.pub"
+REPO_ZED_SETTINGS_TEMPLATE="${CONFIGS_DIR}/zed/settings.json.tmpl"
+REPO_ZED_KEYMAP="${CONFIGS_DIR}/zed/keymap.json"
 LOCAL_ZPROFILE="${HOME}/.zprofile"
 LOCAL_ZSHRC="${HOME}/.zshrc"
 LOCAL_ZSH_PLUGINS="${HOME}/.zsh_plugins.txt"
@@ -25,8 +31,16 @@ LOCAL_MISE_CONFIG="${HOME}/.config/mise/config.toml"
 LOCAL_EZA_CONFIG_DIR="${HOME}/.config/eza"
 LOCAL_GITCONFIG="${HOME}/.gitconfig"
 LOCAL_GH_CONFIG="${HOME}/.config/gh/config.yml"
+LOCAL_SSH_CONFIG="${HOME}/.ssh/config"
+LOCAL_SSH_PUBLIC_KEY_ED25519="${HOME}/.ssh/id_ed25519.pub"
+LOCAL_SSH_PUBLIC_KEY_MACAIR="${HOME}/.ssh/{macair}.pub"
+LOCAL_ZED_SETTINGS="${HOME}/.config/zed/settings.json"
+LOCAL_ZED_KEYMAP="${HOME}/.config/zed/keymap.json"
 HOMEBREW_TUNA_GIT_MIRROR="https://mirrors.tuna.tsinghua.edu.cn/git/homebrew"
 HOMEBREW_INSTALL_SCRIPT_URL="https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh"
+CONTEXT7_VAULT="Employee"
+CONTEXT7_ITEM_TITLE="Context7 API Key"
+ONEPASSWORD_SSH_AGENT_SOCKET="${HOME}/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock"
 
 log() {
   printf '[bootstrap] %s\n' "$1"
@@ -217,6 +231,61 @@ link_gh_config() {
     "GitHub CLI config"
 }
 
+link_ssh_config() {
+  link_managed_file \
+    "${REPO_SSH_CONFIG}" \
+    "${LOCAL_SSH_CONFIG}" \
+    "SSH config"
+}
+
+link_ssh_public_keys() {
+  link_managed_file \
+    "${REPO_SSH_PUBLIC_KEY_ED25519}" \
+    "${LOCAL_SSH_PUBLIC_KEY_ED25519}" \
+    "SSH public key id_ed25519.pub"
+
+  link_managed_file \
+    "${REPO_SSH_PUBLIC_KEY_MACAIR}" \
+    "${LOCAL_SSH_PUBLIC_KEY_MACAIR}" \
+    "SSH public key {macair}.pub"
+}
+
+render_zed_settings() {
+  local context7_api_key escaped_key
+
+  mkdir -p "$(dirname "${LOCAL_ZED_SETTINGS}")"
+
+  if [[ ! -f "${REPO_ZED_SETTINGS_TEMPLATE}" ]]; then
+    printf 'Managed Zed settings template not found: %s\n' "${REPO_ZED_SETTINGS_TEMPLATE}" >&2
+    exit 1
+  fi
+
+  context7_api_key=""
+  if command -v op >/dev/null 2>&1 && op whoami >/dev/null 2>&1; then
+    context7_api_key="$(op item get "${CONTEXT7_ITEM_TITLE}" --vault "${CONTEXT7_VAULT}" --fields credential 2>/dev/null || true)"
+  fi
+
+  if [[ -z "${context7_api_key}" ]]; then
+    log "Rendering Zed settings without Context7 API key"
+  else
+    log "Rendering Zed settings with Context7 API key from 1Password"
+  fi
+
+  escaped_key="$(printf '%s' "${context7_api_key}" | sed 's/[\/&]/\\&/g')"
+  sed "s/__CONTEXT7_API_KEY__/${escaped_key}/g" "${REPO_ZED_SETTINGS_TEMPLATE}" > "${LOCAL_ZED_SETTINGS}"
+}
+
+link_zed_settings() {
+  render_zed_settings
+}
+
+link_zed_keymap() {
+  link_managed_file \
+    "${REPO_ZED_KEYMAP}" \
+    "${LOCAL_ZED_KEYMAP}" \
+    "Zed keymap"
+}
+
 install_brew_bundle() {
   if [[ ! -f "${BREWFILE}" ]]; then
     printf 'Brewfile not found: %s\n' "${BREWFILE}" >&2
@@ -326,6 +395,31 @@ run_1password_checkpoint() {
   log "1Password CLI sign-in complete"
 }
 
+run_1password_ssh_agent_checkpoint() {
+  if [[ -S "${ONEPASSWORD_SSH_AGENT_SOCKET}" ]]; then
+    log "1Password SSH agent socket is available"
+    return
+  fi
+
+  if [[ ! -t 0 ]]; then
+    log "1Password SSH agent socket is not available yet; configure the 1Password desktop app later if needed"
+    return
+  fi
+
+  printf '\n'
+  printf '1Password SSH agent is not available yet.\n'
+  printf 'Open the 1Password desktop app, sign in, and enable SSH agent support.\n'
+  printf 'Expected socket: %s\n' "${ONEPASSWORD_SSH_AGENT_SOCKET}"
+  printf 'Press Enter to continue once the SSH agent is ready, or use Ctrl-C to stop bootstrap.\n'
+  IFS= read -r _
+
+  if [[ -S "${ONEPASSWORD_SSH_AGENT_SOCKET}" ]]; then
+    log "1Password SSH agent socket is available"
+  else
+    log "1Password SSH agent socket is still unavailable; SSH config is in place, but agent-backed auth may not work until 1Password is ready"
+  fi
+}
+
 install_mise_node_tools() {
   if ! command -v mise >/dev/null 2>&1; then
     printf 'mise is required but was not found after Brewfile install.\n' >&2
@@ -346,12 +440,15 @@ install_mise_node_tools() {
   fi
 
   log "Installing repo-managed mise tools from global config"
-  if mise install -C "${CONFIGS_DIR}/mise" -y; then
-    return
+  if ! mise install -C "${CONFIGS_DIR}/mise" -y; then
+    log "Retrying mise install with source builds enabled"
+    MISE_ALL_COMPILE=1 mise install -C "${CONFIGS_DIR}/mise" -y
   fi
 
-  log "Retrying mise install with source builds enabled"
-  MISE_ALL_COMPILE=1 mise install -C "${CONFIGS_DIR}/mise" -y
+  if grep -q '"pipx:browser-use"' "${REPO_MISE_CONFIG}"; then
+    log "Installing browser-use Chromium runtime"
+    mise exec -C "${CONFIGS_DIR}/mise" -- uvx browser-use install
+  fi
 }
 
 main() {
@@ -369,8 +466,13 @@ main() {
   link_eza_config
   link_gitconfig
   link_gh_config
+  link_ssh_config
+  link_ssh_public_keys
+  link_zed_settings
+  link_zed_keymap
   install_brew_bundle
   run_1password_checkpoint
+  run_1password_ssh_agent_checkpoint
   install_mise_node_tools
   log "Bootstrap complete"
 }
