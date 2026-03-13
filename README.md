@@ -1,31 +1,39 @@
 # dotfiles
 
-Migration helpers for bringing command-line tooling onto a new Mac.
+Bootstrap and config management for a new macOS machine.
 
-The current setup is centered on Homebrew packages managed through a `Brewfile`. It already covers the core CLI layer for a new Mac and leaves room to keep expanding into `cask`, `mas`, secrets, and deeper config syncing.
+This repo manages three main things:
+
+- Homebrew taps, formulae, and casks from `Brewfile`
+- shell, terminal, editor, Git, and `mise` config via symlinks into `~/`
+- a small set of Mac App Store installs via `scripts/install-apps.sh`
 
 ## Requirements
 
 - macOS
 - `bash`
-- Network access
-- Administrator access for Homebrew installation
+- network access
+- administrator access for Homebrew installation
 
 ## Layout
 
-- `scripts/bootstrap.sh`: install Homebrew if needed, then install tracked packages and shell config
-- `scripts/install-apps.sh`: install tracked Mac App Store apps with `mas`
-- `scripts/uninstall.sh`: remove tracked Homebrew formulae, then uninstall Homebrew
-- `Brewfile`: source of truth for tracked Homebrew CLI packages
-- `configs/ghostty/`: tracked Ghostty config directory applied to `~/.config/ghostty`
-- `configs/starship/starship.toml`: tracked Starship prompt config applied to `~/.config/starship.toml`
-- `configs/zsh/.zprofile`: tracked login-shell config applied to `~/.zprofile`
-- `configs/zsh/.zshrc`: tracked zsh config applied to `~/.zshrc` during bootstrap
-- `configs/zsh/.zsh_plugins.txt`: tracked Antidote plugin list applied to `~/.zsh_plugins.txt`
+- `Brewfile`: tracked Homebrew taps, formulae, and casks
+- `configs/zsh/.zprofile`: linked to `~/.zprofile`
+- `configs/zsh/.zshrc`: linked to `~/.zshrc`
+- `configs/zsh/.zsh_plugins.txt`: linked to `~/.zsh_plugins.txt`
+- `configs/starship/starship.toml`: linked to `~/.config/starship.toml`
+- `configs/ghostty/`: linked to `~/.config/ghostty`
+- `configs/mise/config.toml`: linked to `~/.config/mise/config.toml`
+- `configs/eza/`: linked to `~/.config/eza`
+- `git/.gitconfig`: linked to `~/.gitconfig`
+- `git/config.yml`: linked to `~/.config/gh/config.yml`
+- `scripts/bootstrap.sh`: installs Homebrew if needed, links managed config, installs Brewfile entries, and installs repo-managed `mise` tools
+- `scripts/install-apps.sh`: installs tracked Mac App Store apps with `mas`
+- `scripts/uninstall.sh`: removes tracked Homebrew software, uninstalls Homebrew, and cleans up repo-managed symlinks
 
 ## Usage
 
-Bootstrap a new Mac:
+Bootstrap a machine:
 
 ```bash
 ./scripts/bootstrap.sh
@@ -37,88 +45,118 @@ Install tracked App Store apps:
 ./scripts/install-apps.sh
 ```
 
-Remove the tracked Homebrew setup:
+Remove the managed setup:
 
 ```bash
 ./scripts/uninstall.sh
 ```
 
-## Current Scope
+## Bootstrap Flow
 
-The bootstrap script currently does the following:
+`scripts/bootstrap.sh` currently does the following:
 
-- Verifies the host is macOS
-- Installs Homebrew non-interactively from the Tsinghua mirror when missing
-- Initializes Homebrew for the current shell session
-- Repoints Homebrew brew/core/cask remotes to the Tsinghua China mirror
-- Uses the Tsinghua bottle and API mirror for package downloads during bootstrap
-- Replaces any existing `~/.zprofile` with the tracked `configs/zsh/.zprofile`
-- Links `~/.zprofile` to the tracked `configs/zsh/.zprofile`
-- Replaces any existing `~/.zshrc` with the tracked `configs/zsh/.zshrc`
-- Links `~/.zshrc` to the tracked `configs/zsh/.zshrc`
-- Replaces any existing `~/.zsh_plugins.txt` with the tracked `configs/zsh/.zsh_plugins.txt`
-- Links `~/.zsh_plugins.txt` to the tracked `configs/zsh/.zsh_plugins.txt`
-- Replaces any existing `~/.config/starship.toml` with the tracked Starship config
-- Replaces any existing `~/.config/ghostty` with the tracked Ghostty config directory
-- Installs all packages declared in `Brewfile`
-- Offers an interactive 1Password CLI sign-in checkpoint after package install, with a skip option for later setup
-- Offers an interactive Spotify login checkpoint after 1Password sign-in when Spotify is installed
+- verifies the host is macOS
+- refreshes `sudo` credentials in interactive shells
+- installs Homebrew from the official installer script when missing
+- configures Homebrew to use the Tsinghua bottle/API mirrors after install
+- links repo-managed config into:
+  - `~/.zprofile`
+  - `~/.zshrc`
+  - `~/.zsh_plugins.txt`
+  - `~/.config/starship.toml`
+  - `~/.config/ghostty`
+  - `~/.config/mise/config.toml`
+  - `~/.config/eza`
+  - `~/.gitconfig`
+  - `~/.config/gh/config.yml`
+- installs Homebrew taps, formulae, and casks from `Brewfile` with per-item progress logs
+- offers an interactive `y/N` 1Password CLI sign-in checkpoint
+- trusts the repo-managed `mise` config and installs its declared tools
+- retries `mise` installs with `MISE_ALL_COMPILE=1` if a prebuilt runtime download fails
 
-The uninstall script currently does the following:
+## Homebrew Scope
 
-- Verifies the host is macOS
-- Cleans up the managed `~/.zprofile` symlink even if Homebrew is already absent
-- Cleans up the managed `~/.zshrc` symlink even if Homebrew is already absent
-- Cleans up the managed `~/.zsh_plugins.txt` symlink even if Homebrew is already absent
-- Cleans up the managed `~/.config/starship.toml` symlink even if Homebrew is already absent
-- Cleans up the managed `~/.config/ghostty` symlink even if Homebrew is already absent
-- Uninstalls tracked formulae and casks declared in `Brewfile`
-- Attempts to uninstall any remaining Homebrew formulae and casks
-- Runs the official Homebrew uninstall script
-- Removes legacy `*.pre-dotfiles-backup` files from older bootstrap runs when present
+`Brewfile` is the source of truth for:
 
-The app install script currently does the following:
+- Homebrew taps
+- CLI tools managed by Homebrew
+- desktop apps managed by Homebrew cask
+- font casks
 
-- Verifies the host is macOS
-- Requires Homebrew to already be installed
-- Ensures `mas` is available
-- Requires an active Mac App Store login
-- Installs tracked App Store apps such as Amphetamine, WeChat, and Xcode
+The bootstrap script installs formulae with `brew install --formula` and casks with `brew install --cask` so Homebrew cannot silently resolve an ambiguous name to the wrong package type.
+
+## Mise Scope
+
+The repo-managed `mise` config lives at `configs/mise/config.toml` and is linked to `~/.config/mise/config.toml`.
+
+That file currently manages:
+
+- `bun`
+- `node`
+- `python`
+- `pipx:thefuck`
+- `npm:typescript`
+- `npm:typescript-language-server`
+
+This means:
+
+- the repo is the source of truth for global `mise` tool definitions
+- `mise activate zsh` in `configs/zsh/.zshrc` exposes those tools in your shell
+- `thefuck` is initialized after `mise` activation so the alias works with the `mise`-managed install
+
+## Eza Theme Scope
+
+The repo-managed `eza` theme bundle lives at `configs/eza/` and is linked to `~/.config/eza`.
+
+This means:
+
+- the repo carries the upstream theme files under `configs/eza/themes/`
+- `configs/zsh/.zshrc` already exports `EZA_CONFIG_DIR="$HOME/.config/eza"`
+- `configs/zsh/.zshrc` already exports `EZA_COLORS_THEME="dracula"`
+- a new Mac can use the Dracula theme without depending on any other local repo or symlink
+
+## App Store Scope
+
+`scripts/install-apps.sh` currently installs these Mac App Store apps:
+
+- Amphetamine
+- AutoSwitchInput Pro
+- Infuse
+- NeteaseMusic
+- SnippetsLab
+- WeChat
+- Xcode
+
+App Store sign-in is intentionally kept as a manual prerequisite.
+
+## Uninstall Flow
+
+`scripts/uninstall.sh` currently does the following:
+
+- verifies the host is macOS
+- removes tracked Homebrew formulae and casks from `Brewfile`
+- removes any remaining installed Homebrew formulae and casks
+- runs the official Homebrew uninstall script
+- cleans up repo-managed symlinks for:
+  - zsh config
+  - Starship config
+  - Ghostty config
+  - `mise` config
+  - `eza` config
+  - Git config
+  - GitHub CLI config
+- removes generated Antidote artifacts
+- prints a success or failure notice that reflects the actual uninstall result
 
 ## Idempotency
 
-- Running `./scripts/bootstrap.sh` multiple times is safe. Existing Homebrew installs and already-installed formulae are skipped.
-- Running `./scripts/install-apps.sh` multiple times is safe. Already-installed App Store apps are skipped.
-- Running `./scripts/uninstall.sh` on a machine without Homebrew exits successfully with a message.
-
-## Roadmap
-
-Suggested expansion order for this repo:
-
-1. Add `brew cask` coverage for desktop apps that are not better handled by the Mac App Store.
-2. Grow `mas` coverage for Mac App Store apps that should stay on Apple-managed install and update flows.
-3. Track more shell, Git, terminal, and editor configs that should follow you to a new Mac.
-4. Expand runtime and toolchain setup such as `mise`, Node, Python tooling, and any global CLI dependencies you still want standardized.
-5. Document secrets and credential restore steps for things like SSH keys, GitHub auth, cloud tokens, app sign-ins, and future 1Password-backed setup.
-6. Add macOS system preference setup for defaults like Finder, Dock, keyboard, screenshots, and input behavior.
-
-Practical repo structure to grow toward:
-
-- `Brewfile` for formulae and casks
-- `mas` app manifest or a dedicated tracked section in bootstrap docs
-- `configs/zsh/`, `git/`, `config/`, and app-specific config directories
-- `scripts/bootstrap.sh`, `scripts/install-apps.sh`, `scripts/uninstall.sh`, and a future `scripts/post-install.sh`
-- `docs/manual-steps.md` for secrets, login steps, and machine-specific tasks
-
-Automation guidelines for future phases:
-
-- Fully automate package installs, symlinked configs, and repeatable macOS defaults
-- Keep secrets, account logins, licenses, and other personal state as documented manual steps unless you later add a secure secret-management workflow
-- Add validation steps after bootstrap, such as `brew doctor`, `mas list`, `gh auth status`, and spot checks for linked config files
+- `./scripts/bootstrap.sh` is safe to rerun
+- `./scripts/install-apps.sh` skips already-installed App Store apps
+- `./scripts/uninstall.sh` exits cleanly even when Homebrew is already absent
 
 ## Notes
 
-- The current focus is the Homebrew-managed CLI layer plus the shell config needed to use it comfortably on a new Mac.
-- The uninstall flow intentionally stays limited to Homebrew-managed software and the repo-managed shell artifacts it created. It does not remove unrelated personal files or user configuration.
-- The tracked [configs/zsh/.zshrc](/Users/blackpig/Code/Github/dotfiles/configs/zsh/.zshrc) will source `~/.zshrc.local` when present, so each Mac can keep machine-specific zsh settings outside the repo.
-- The tracked [configs/zsh/.zprofile](/Users/blackpig/Code/Github/dotfiles/configs/zsh/.zprofile) will source `~/.zprofile.local` when present, so each Mac can keep machine-specific login-shell settings outside the repo.
+- `configs/zsh/.zshrc` sources `~/.zshrc.local` when present
+- `configs/zsh/.zprofile` sources `~/.zprofile.local` when present
+- `git/config.yml` covers GitHub CLI preferences only; keep `~/.config/gh/hosts.yml` local
+- secrets should stay out of tracked files; prefer local files or `op`-backed runtime injection for secret material

@@ -6,18 +6,25 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 BREWFILE="${REPO_ROOT}/Brewfile"
 CONFIGS_DIR="${REPO_ROOT}/configs"
+GIT_CONFIG_DIR="${REPO_ROOT}/git"
 REPO_ZPROFILE="${CONFIGS_DIR}/zsh/.zprofile"
 REPO_ZSHRC="${CONFIGS_DIR}/zsh/.zshrc"
 REPO_ZSH_PLUGINS="${CONFIGS_DIR}/zsh/.zsh_plugins.txt"
 REPO_STARSHIP_CONFIG="${CONFIGS_DIR}/starship/starship.toml"
 REPO_GHOSTTY_DIR="${CONFIGS_DIR}/ghostty"
 REPO_MISE_CONFIG="${CONFIGS_DIR}/mise/config.toml"
+REPO_EZA_CONFIG_DIR="${CONFIGS_DIR}/eza"
+REPO_GITCONFIG="${GIT_CONFIG_DIR}/.gitconfig"
+REPO_GH_CONFIG="${GIT_CONFIG_DIR}/config.yml"
 LOCAL_ZPROFILE="${HOME}/.zprofile"
 LOCAL_ZSHRC="${HOME}/.zshrc"
 LOCAL_ZSH_PLUGINS="${HOME}/.zsh_plugins.txt"
 LOCAL_STARSHIP_CONFIG="${HOME}/.config/starship.toml"
 LOCAL_GHOSTTY_DIR="${HOME}/.config/ghostty"
 LOCAL_MISE_CONFIG="${HOME}/.config/mise/config.toml"
+LOCAL_EZA_CONFIG_DIR="${HOME}/.config/eza"
+LOCAL_GITCONFIG="${HOME}/.gitconfig"
+LOCAL_GH_CONFIG="${HOME}/.config/gh/config.yml"
 HOMEBREW_TUNA_GIT_MIRROR="https://mirrors.tuna.tsinghua.edu.cn/git/homebrew"
 HOMEBREW_INSTALL_SCRIPT_URL="https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh"
 
@@ -189,6 +196,27 @@ link_mise_config() {
     "mise config"
 }
 
+link_eza_config() {
+  link_managed_file \
+    "${REPO_EZA_CONFIG_DIR}" \
+    "${LOCAL_EZA_CONFIG_DIR}" \
+    "eza config"
+}
+
+link_gitconfig() {
+  link_managed_file \
+    "${REPO_GITCONFIG}" \
+    "${LOCAL_GITCONFIG}" \
+    "Git config"
+}
+
+link_gh_config() {
+  link_managed_file \
+    "${REPO_GH_CONFIG}" \
+    "${LOCAL_GH_CONFIG}" \
+    "GitHub CLI config"
+}
+
 install_brew_bundle() {
   if [[ ! -f "${BREWFILE}" ]]; then
     printf 'Brewfile not found: %s\n' "${BREWFILE}" >&2
@@ -338,6 +366,9 @@ main() {
   link_starship_config
   link_ghostty_config
   link_mise_config
+  link_eza_config
+  link_gitconfig
+  link_gh_config
   install_brew_bundle
   run_1password_checkpoint
   install_mise_node_tools

@@ -1,5 +1,7 @@
-export EZA_CONFIG_DIR="${HOME}/.config/eza"
 export EZA_COLORS_THEME="dracula"
+export HOMEBREW_API_DOMAIN="https://mirrors.tuna.tsinghua.edu.cn/homebrew-bottles/api"
+export HOMEBREW_BOTTLE_DOMAIN="https://mirrors.tuna.tsinghua.edu.cn/homebrew-bottles"
+export HOMEBREW_INSTALL_CLEANUP=1
 
 _antidote_load() {
   local antidote_script plugins_file bundle_file
@@ -89,7 +91,10 @@ if command -v starship >/dev/null 2>&1; then
   eval "$(starship init zsh)"
 fi
 
-alias uu='brew upgrade && mise upgrade && _antidote_update'
+alias oc="/opt/homebrew/bin/opencode"
+alias cc="claude"
+alias ccd="claude --allow-dangerously-skip-permissions"
+alias uu="brew update && brew upgrade && mise upgrade && antidote update"
 
 y() {
   if ! command -v yazi >/dev/null 2>&1; then
