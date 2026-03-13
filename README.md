@@ -184,7 +184,7 @@ This means:
 - tracked public keys in `configs/ssh/*.pub` are linked to matching files in `~/.ssh/`
 - after `op` sign-in, bootstrap looks for matching 1Password `SSH Key` items and writes their private keys into `~/.ssh/`
 - private keys and host trust files such as `known_hosts` stay local and are not tracked in the repo
-- the SSH config is also set up for the 1Password SSH agent when the socket at `~/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock` is available
+- the SSH config points at private key paths in `~/.ssh/` and also uses the 1Password SSH agent when the socket at `~/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock` is available
 
 ## Idempotency
 
