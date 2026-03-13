@@ -25,6 +25,7 @@ REPO_ZED_KEYMAP="${CONFIGS_DIR}/zed/keymap.json"
 LOCAL_ZPROFILE="${HOME}/.zprofile"
 LOCAL_ZSHRC="${HOME}/.zshrc"
 LOCAL_ZSH_PLUGINS="${HOME}/.zsh_plugins.txt"
+LOCAL_ZSH_PLUGIN_BUNDLE="${HOME}/.zsh_plugins.zsh"
 LOCAL_STARSHIP_CONFIG="${HOME}/.config/starship.toml"
 LOCAL_GHOSTTY_DIR="${HOME}/.config/ghostty"
 LOCAL_MISE_CONFIG="${HOME}/.config/mise/config.toml"
@@ -32,6 +33,8 @@ LOCAL_EZA_CONFIG_DIR="${HOME}/.config/eza"
 LOCAL_GITCONFIG="${HOME}/.gitconfig"
 LOCAL_GH_CONFIG="${HOME}/.config/gh/config.yml"
 LOCAL_SSH_CONFIG="${HOME}/.ssh/config"
+LOCAL_SSH_PRIVATE_KEY_ED25519="${HOME}/.ssh/id_ed25519"
+LOCAL_SSH_PRIVATE_KEY_MACAIR="${HOME}/.ssh/{macair}"
 LOCAL_SSH_PUBLIC_KEY_ED25519="${HOME}/.ssh/id_ed25519.pub"
 LOCAL_SSH_PUBLIC_KEY_MACAIR="${HOME}/.ssh/{macair}.pub"
 LOCAL_ZED_SETTINGS="${HOME}/.config/zed/settings.json"
@@ -250,6 +253,113 @@ link_ssh_public_keys() {
     "SSH public key {macair}.pub"
 }
 
+sync_ssh_private_keys_from_1password() {
+  if ! command -v op >/dev/null 2>&1; then
+    log "1Password CLI is not installed, skipping SSH private key sync"
+    return
+  fi
+
+  if ! op whoami >/dev/null 2>&1; then
+    log "1Password CLI is not signed in, skipping SSH private key sync"
+    return
+  fi
+
+  if ! command -v python3 >/dev/null 2>&1; then
+    log "python3 is unavailable, skipping SSH private key sync from 1Password"
+    return
+  fi
+
+  mkdir -p "${HOME}/.ssh"
+  chmod 700 "${HOME}/.ssh"
+
+  log "Syncing SSH private keys from 1Password into ~/.ssh"
+  python3 - \
+    "${LOCAL_SSH_PUBLIC_KEY_ED25519}" "${LOCAL_SSH_PRIVATE_KEY_ED25519}" \
+    "${LOCAL_SSH_PUBLIC_KEY_MACAIR}" "${LOCAL_SSH_PRIVATE_KEY_MACAIR}" <<'PY'
+import json
+import os
+import stat
+import subprocess
+import sys
+from pathlib import Path
+
+
+def run(*args: str) -> str:
+    return subprocess.check_output(args, text=True)
+
+
+def read_json(*args: str):
+    return json.loads(run(*args))
+
+
+def normalize_public_key(raw: str) -> str:
+    parts = raw.strip().split()
+    if len(parts) < 2:
+      return raw.strip()
+    return " ".join(parts[:2])
+
+
+def find_field(item: dict, field_label: str):
+    for field in item.get("fields", []):
+        label = (field.get("label") or "").strip().lower()
+        if label == field_label:
+            return field
+    return None
+
+
+pairs = []
+argv = sys.argv[1:]
+for idx in range(0, len(argv), 2):
+    public_path = Path(argv[idx])
+    private_path = Path(argv[idx + 1])
+    if public_path.exists():
+        pairs.append((public_path, private_path))
+
+if not pairs:
+    print("[bootstrap] No tracked SSH public keys were found locally; skipping private key sync")
+    raise SystemExit(0)
+
+items = read_json("op", "item", "list", "--categories", "SSH Key", "--format", "json")
+matches = {}
+
+for item in items:
+    detail = read_json("op", "item", "get", item["id"], "--format", "json")
+    public_field = find_field(detail, "public key")
+    private_field = find_field(detail, "private key")
+    if not public_field or not private_field:
+        continue
+
+    public_value = normalize_public_key(public_field.get("value", ""))
+    private_reference = private_field.get("reference")
+    if public_value and private_reference:
+        matches[public_value] = {
+            "title": item.get("title", item["id"]),
+            "reference": private_reference,
+        }
+
+missing = []
+
+for public_path, private_path in pairs:
+    public_value = normalize_public_key(public_path.read_text().strip())
+    match = matches.get(public_value)
+    if not match:
+        missing.append(public_path.name)
+        continue
+
+    private_key = run("op", "read", f'{match["reference"]}?ssh-format=openssh')
+    private_path.write_text(private_key)
+    os.chmod(private_path, stat.S_IRUSR | stat.S_IWUSR)
+    print(f"[bootstrap] Synced {private_path.name} from 1Password item '{match['title']}'")
+
+if missing:
+    print(
+        "[bootstrap] Could not find matching 1Password SSH Key items for: "
+        + ", ".join(missing),
+        file=sys.stderr,
+    )
+PY
+}
+
 render_zed_settings() {
   local context7_api_key escaped_key
 
@@ -349,6 +459,37 @@ install_brew_bundle() {
       brew install --cask --verbose "${item}"
     fi
   done
+}
+
+prime_antidote_bundle() {
+  local antidote_script
+  antidote_script=""
+
+  if [[ ! -f "${LOCAL_ZSH_PLUGINS}" ]]; then
+    log "Skipping Antidote bundle generation because ${LOCAL_ZSH_PLUGINS} is missing"
+    return
+  fi
+
+  for antidote_prefix in /opt/homebrew /usr/local; do
+    if [[ -f "${antidote_prefix}/share/antidote/antidote.zsh" ]]; then
+      antidote_script="${antidote_prefix}/share/antidote/antidote.zsh"
+      break
+    fi
+  done
+
+  if [[ -z "${antidote_script}" ]]; then
+    log "Skipping Antidote bundle generation because antidote is not installed yet"
+    return
+  fi
+
+  log "Generating Antidote plugin bundle"
+  ANTIDOTE_SCRIPT="${antidote_script}" \
+  LOCAL_ZSH_PLUGINS="${LOCAL_ZSH_PLUGINS}" \
+  LOCAL_ZSH_PLUGIN_BUNDLE="${LOCAL_ZSH_PLUGIN_BUNDLE}" \
+    zsh -fc '
+      source "${ANTIDOTE_SCRIPT}"
+      antidote bundle < "${LOCAL_ZSH_PLUGINS}" > "${LOCAL_ZSH_PLUGIN_BUNDLE}"
+    '
 }
 
 run_1password_checkpoint() {
@@ -471,7 +612,9 @@ main() {
   link_zed_settings
   link_zed_keymap
   install_brew_bundle
+  prime_antidote_bundle
   run_1password_checkpoint
+  sync_ssh_private_keys_from_1password
   run_1password_ssh_agent_checkpoint
   install_mise_node_tools
   log "Bootstrap complete"

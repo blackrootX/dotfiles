@@ -78,7 +78,9 @@ Remove the managed setup:
   - rendered `~/.config/zed/settings.json`
   - `~/.config/zed/keymap.json`
 - installs Homebrew taps, formulae, and casks from `Brewfile` with per-item progress logs
+- pre-generates the Antidote plugin bundle after `antidote` is installed from `Brewfile`
 - offers an interactive `y/N` 1Password CLI sign-in checkpoint
+- syncs tracked SSH private keys from matching 1Password `SSH Key` items into `~/.ssh/`
 - trusts the repo-managed `mise` config and installs its declared tools
 - retries `mise` installs with `MISE_ALL_COMPILE=1` if a prebuilt runtime download fails
 
@@ -104,7 +106,6 @@ That file currently manages:
 - `python`
 - `uv`
 - `pipx:browser-use`
-- `pipx:thefuck`
 - `npm:typescript`
 - `npm:typescript-language-server`
 
@@ -113,7 +114,6 @@ This means:
 - the repo is the source of truth for global `mise` tool definitions
 - `mise activate zsh` in `configs/zsh/.zshrc` exposes those tools in your shell
 - bootstrap also runs `uvx browser-use install` so Browser Use's Chromium dependency is installed on a new Mac
-- `thefuck` is initialized after `mise` activation so the alias works with the `mise`-managed install
 
 ## Eza Theme Scope
 
@@ -182,9 +182,9 @@ This means:
 
 - `configs/ssh/config` is linked to `~/.ssh/config`
 - tracked public keys in `configs/ssh/*.pub` are linked to matching files in `~/.ssh/`
-- the SSH config is set up for the 1Password SSH agent and uses the tracked public keys for host selection
-- private keys and host trust files such as `known_hosts` stay local and are not tracked
-- on a new Mac, sign in to the 1Password desktop app and enable SSH agent support so the socket at `~/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock` is available
+- after `op` sign-in, bootstrap looks for matching 1Password `SSH Key` items and writes their private keys into `~/.ssh/`
+- private keys and host trust files such as `known_hosts` stay local and are not tracked in the repo
+- the SSH config is also set up for the 1Password SSH agent when the socket at `~/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock` is available
 
 ## Idempotency
 

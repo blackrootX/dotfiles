@@ -1,3 +1,5 @@
+# This setup expects the matching private keys to come from the 1Password SSH agent.
+# Only the public keys are tracked in the repo and linked into ~/.ssh/.
 Host 43.153.223.158
   HostName 43.153.223.158
   User ubuntu
