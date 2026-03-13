@@ -5,16 +5,19 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 BREWFILE="${REPO_ROOT}/Brewfile"
-REPO_ZPROFILE="${REPO_ROOT}/zsh/.zprofile"
-REPO_ZSHRC="${REPO_ROOT}/zsh/.zshrc"
-REPO_ZSH_PLUGINS="${REPO_ROOT}/zsh/.zsh_plugins.txt"
-REPO_STARSHIP_CONFIG="${REPO_ROOT}/starship/starship.toml"
+CONFIGS_DIR="${REPO_ROOT}/configs"
+REPO_ZPROFILE="${CONFIGS_DIR}/zsh/.zprofile"
+REPO_ZSHRC="${CONFIGS_DIR}/zsh/.zshrc"
+REPO_ZSH_PLUGINS="${CONFIGS_DIR}/zsh/.zsh_plugins.txt"
+REPO_STARSHIP_CONFIG="${CONFIGS_DIR}/starship/starship.toml"
+REPO_GHOSTTY_DIR="${CONFIGS_DIR}/ghostty"
 LOCAL_ZPROFILE="${HOME}/.zprofile"
 LOCAL_ZSHRC="${HOME}/.zshrc"
 LOCAL_ZSH_PLUGINS="${HOME}/.zsh_plugins.txt"
 LOCAL_ZSH_PLUGIN_BUNDLE="${HOME}/.zsh_plugins.zsh"
 LOCAL_ANTIDOTE_DIR="${HOME}/Library/Caches/antidote"
 LOCAL_STARSHIP_CONFIG="${HOME}/.config/starship.toml"
+LOCAL_GHOSTTY_DIR="${HOME}/.config/ghostty"
 LEGACY_ZPROFILE_BACKUP="${HOME}/.zprofile.pre-dotfiles-backup"
 LEGACY_ZSHRC_BACKUP="${HOME}/.zshrc.pre-dotfiles-backup"
 LEGACY_ZSH_PLUGINS_BACKUP="${HOME}/.zsh_plugins.txt.pre-dotfiles-backup"
@@ -201,6 +204,13 @@ cleanup_starship_config() {
     "starship config"
 }
 
+cleanup_ghostty_config() {
+  cleanup_managed_file \
+    "${REPO_GHOSTTY_DIR}" \
+    "${LOCAL_GHOSTTY_DIR}" \
+    "Ghostty config"
+}
+
 cleanup_legacy_backups() {
   local legacy_path
   for legacy_path in \
@@ -229,6 +239,7 @@ cleanup_managed_configs() {
   fi
 
   cleanup_starship_config
+  cleanup_ghostty_config
   cleanup_zprofile
   cleanup_zshrc
   cleanup_zsh_plugins

@@ -17,10 +17,11 @@ The current setup is centered on Homebrew packages managed through a `Brewfile`.
 - `scripts/install-apps.sh`: install tracked Mac App Store apps with `mas`
 - `scripts/uninstall.sh`: remove tracked Homebrew formulae, then uninstall Homebrew
 - `Brewfile`: source of truth for tracked Homebrew CLI packages
-- `starship/starship.toml`: tracked Starship prompt config applied to `~/.config/starship.toml`
-- `zsh/.zprofile`: tracked login-shell config applied to `~/.zprofile`
-- `zsh/.zshrc`: tracked zsh config applied to `~/.zshrc` during bootstrap
-- `zsh/.zsh_plugins.txt`: tracked Antidote plugin list applied to `~/.zsh_plugins.txt`
+- `configs/ghostty/`: tracked Ghostty config directory applied to `~/.config/ghostty`
+- `configs/starship/starship.toml`: tracked Starship prompt config applied to `~/.config/starship.toml`
+- `configs/zsh/.zprofile`: tracked login-shell config applied to `~/.zprofile`
+- `configs/zsh/.zshrc`: tracked zsh config applied to `~/.zshrc` during bootstrap
+- `configs/zsh/.zsh_plugins.txt`: tracked Antidote plugin list applied to `~/.zsh_plugins.txt`
 
 ## Usage
 
@@ -51,13 +52,14 @@ The bootstrap script currently does the following:
 - Initializes Homebrew for the current shell session
 - Repoints Homebrew brew/core/cask remotes to the Tsinghua China mirror
 - Uses the Tsinghua bottle and API mirror for package downloads during bootstrap
-- Replaces any existing `~/.zprofile` with the tracked `zsh/.zprofile`
-- Links `~/.zprofile` to the tracked `zsh/.zprofile`
-- Replaces any existing `~/.zshrc` with the tracked `zsh/.zshrc`
-- Links `~/.zshrc` to the tracked `zsh/.zshrc`
-- Replaces any existing `~/.zsh_plugins.txt` with the tracked `zsh/.zsh_plugins.txt`
-- Links `~/.zsh_plugins.txt` to the tracked `zsh/.zsh_plugins.txt`
+- Replaces any existing `~/.zprofile` with the tracked `configs/zsh/.zprofile`
+- Links `~/.zprofile` to the tracked `configs/zsh/.zprofile`
+- Replaces any existing `~/.zshrc` with the tracked `configs/zsh/.zshrc`
+- Links `~/.zshrc` to the tracked `configs/zsh/.zshrc`
+- Replaces any existing `~/.zsh_plugins.txt` with the tracked `configs/zsh/.zsh_plugins.txt`
+- Links `~/.zsh_plugins.txt` to the tracked `configs/zsh/.zsh_plugins.txt`
 - Replaces any existing `~/.config/starship.toml` with the tracked Starship config
+- Replaces any existing `~/.config/ghostty` with the tracked Ghostty config directory
 - Installs all packages declared in `Brewfile`
 - Offers an interactive 1Password CLI sign-in checkpoint after package install, with a skip option for later setup
 
@@ -68,6 +70,7 @@ The uninstall script currently does the following:
 - Cleans up the managed `~/.zshrc` symlink even if Homebrew is already absent
 - Cleans up the managed `~/.zsh_plugins.txt` symlink even if Homebrew is already absent
 - Cleans up the managed `~/.config/starship.toml` symlink even if Homebrew is already absent
+- Cleans up the managed `~/.config/ghostty` symlink even if Homebrew is already absent
 - Uninstalls tracked formulae and casks declared in `Brewfile`
 - Attempts to uninstall any remaining Homebrew formulae and casks
 - Runs the official Homebrew uninstall script
@@ -102,7 +105,7 @@ Practical repo structure to grow toward:
 
 - `Brewfile` for formulae and casks
 - `mas` app manifest or a dedicated tracked section in bootstrap docs
-- `zsh/`, `git/`, `config/`, and app-specific config directories
+- `configs/zsh/`, `git/`, `config/`, and app-specific config directories
 - `scripts/bootstrap.sh`, `scripts/install-apps.sh`, `scripts/uninstall.sh`, and a future `scripts/post-install.sh`
 - `docs/manual-steps.md` for secrets, login steps, and machine-specific tasks
 
@@ -116,5 +119,5 @@ Automation guidelines for future phases:
 
 - The current focus is the Homebrew-managed CLI layer plus the shell config needed to use it comfortably on a new Mac.
 - The uninstall flow intentionally stays limited to Homebrew-managed software and the repo-managed shell artifacts it created. It does not remove unrelated personal files or user configuration.
-- The tracked [zsh/.zshrc](/Users/blackpig/Code/Github/dotfiles/zsh/.zshrc) will source `~/.zshrc.local` when present, so each Mac can keep machine-specific zsh settings outside the repo.
-- The tracked [zsh/.zprofile](/Users/blackpig/Code/Github/dotfiles/zsh/.zprofile) will source `~/.zprofile.local` when present, so each Mac can keep machine-specific login-shell settings outside the repo.
+- The tracked [configs/zsh/.zshrc](/Users/blackpig/Code/Github/dotfiles/configs/zsh/.zshrc) will source `~/.zshrc.local` when present, so each Mac can keep machine-specific zsh settings outside the repo.
+- The tracked [configs/zsh/.zprofile](/Users/blackpig/Code/Github/dotfiles/configs/zsh/.zprofile) will source `~/.zprofile.local` when present, so each Mac can keep machine-specific login-shell settings outside the repo.

@@ -5,14 +5,17 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 BREWFILE="${REPO_ROOT}/Brewfile"
-REPO_ZPROFILE="${REPO_ROOT}/zsh/.zprofile"
-REPO_ZSHRC="${REPO_ROOT}/zsh/.zshrc"
-REPO_ZSH_PLUGINS="${REPO_ROOT}/zsh/.zsh_plugins.txt"
-REPO_STARSHIP_CONFIG="${REPO_ROOT}/starship/starship.toml"
+CONFIGS_DIR="${REPO_ROOT}/configs"
+REPO_ZPROFILE="${CONFIGS_DIR}/zsh/.zprofile"
+REPO_ZSHRC="${CONFIGS_DIR}/zsh/.zshrc"
+REPO_ZSH_PLUGINS="${CONFIGS_DIR}/zsh/.zsh_plugins.txt"
+REPO_STARSHIP_CONFIG="${CONFIGS_DIR}/starship/starship.toml"
+REPO_GHOSTTY_DIR="${CONFIGS_DIR}/ghostty"
 LOCAL_ZPROFILE="${HOME}/.zprofile"
 LOCAL_ZSHRC="${HOME}/.zshrc"
 LOCAL_ZSH_PLUGINS="${HOME}/.zsh_plugins.txt"
 LOCAL_STARSHIP_CONFIG="${HOME}/.config/starship.toml"
+LOCAL_GHOSTTY_DIR="${HOME}/.config/ghostty"
 HOMEBREW_TUNA_GIT_MIRROR="https://mirrors.tuna.tsinghua.edu.cn/git/homebrew"
 
 log() {
@@ -113,7 +116,7 @@ link_managed_file() {
 
   mkdir -p "$(dirname "${source_path}")" "$(dirname "${target_path}")"
 
-  if [[ ! -f "${source_path}" ]]; then
+  if [[ ! -e "${source_path}" ]]; then
     printf 'Managed %s not found: %s\n' "${label}" "${source_path}" >&2
     exit 1
   fi
@@ -157,6 +160,13 @@ link_starship_config() {
     "${REPO_STARSHIP_CONFIG}" \
     "${LOCAL_STARSHIP_CONFIG}" \
     "starship config"
+}
+
+link_ghostty_config() {
+  link_managed_file \
+    "${REPO_GHOSTTY_DIR}" \
+    "${LOCAL_GHOSTTY_DIR}" \
+    "Ghostty config"
 }
 
 install_brew_bundle() {
@@ -226,6 +236,7 @@ main() {
   link_zshrc
   link_zsh_plugins
   link_starship_config
+  link_ghostty_config
   install_brew_bundle
   run_1password_checkpoint
   install_mise_toolchains
