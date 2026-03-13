@@ -33,8 +33,6 @@ LOCAL_EZA_CONFIG_DIR="${HOME}/.config/eza"
 LOCAL_GITCONFIG="${HOME}/.gitconfig"
 LOCAL_GH_CONFIG="${HOME}/.config/gh/config.yml"
 LOCAL_SSH_CONFIG="${HOME}/.ssh/config"
-LOCAL_SSH_PRIVATE_KEY_ED25519="${HOME}/.ssh/id_ed25519"
-LOCAL_SSH_PRIVATE_KEY_MACAIR="${HOME}/.ssh/{macair}"
 LOCAL_SSH_PUBLIC_KEY_ED25519="${HOME}/.ssh/id_ed25519.pub"
 LOCAL_SSH_PUBLIC_KEY_MACAIR="${HOME}/.ssh/{macair}.pub"
 LOCAL_ZED_SETTINGS="${HOME}/.config/zed/settings.json"
@@ -253,132 +251,6 @@ link_ssh_public_keys() {
     "SSH public key {macair}.pub"
 }
 
-sync_ssh_private_keys_from_1password() {
-  if ! command -v op >/dev/null 2>&1; then
-    log "1Password CLI is not installed, skipping SSH private key sync"
-    return
-  fi
-
-  if ! op whoami >/dev/null 2>&1; then
-    log "1Password CLI is not signed in, skipping SSH private key sync"
-    return
-  fi
-
-  if ! command -v python3 >/dev/null 2>&1; then
-    log "python3 is unavailable, skipping SSH private key sync from 1Password"
-    return
-  fi
-
-  if ! command -v ssh-keygen >/dev/null 2>&1; then
-    log "ssh-keygen is unavailable, skipping SSH private key sync from 1Password"
-    return
-  fi
-
-  mkdir -p "${HOME}/.ssh"
-  chmod 700 "${HOME}/.ssh"
-
-  log "Syncing SSH private keys from 1Password into ~/.ssh"
-  python3 - \
-    "${LOCAL_SSH_PUBLIC_KEY_ED25519}" "${LOCAL_SSH_PRIVATE_KEY_ED25519}" \
-    "${LOCAL_SSH_PUBLIC_KEY_MACAIR}" "${LOCAL_SSH_PRIVATE_KEY_MACAIR}" <<'PY'
-import json
-import os
-import stat
-import subprocess
-import sys
-import tempfile
-from pathlib import Path
-
-
-def run(*args: str) -> str:
-    return subprocess.check_output(args, text=True)
-
-
-def read_json(*args: str):
-    return json.loads(run(*args))
-
-
-def normalize_public_key(raw: str) -> str:
-    parts = raw.strip().split()
-    if len(parts) < 2:
-        return raw.strip()
-    return " ".join(parts[:2])
-
-
-pairs = []
-argv = sys.argv[1:]
-for idx in range(0, len(argv), 2):
-    public_path = Path(argv[idx])
-    private_path = Path(argv[idx + 1])
-    if public_path.exists():
-        pairs.append((public_path, private_path))
-
-if not pairs:
-    print("[bootstrap] No tracked SSH public keys were found locally; skipping private key sync")
-    raise SystemExit(0)
-
-items = read_json("op", "item", "list", "--categories", "SSH Key", "--format", "json")
-matches = {}
-
-for item in items:
-    vault = item.get("vault") or {}
-    vault_id = vault.get("id")
-    item_id = item.get("id")
-    title = item.get("title", item_id)
-    if not vault_id or not item_id:
-        continue
-
-    private_reference = f"op://{vault_id}/{item_id}/private key?ssh-format=openssh"
-
-    try:
-        private_key = run("op", "read", private_reference)
-    except subprocess.CalledProcessError:
-        continue
-
-    with tempfile.NamedTemporaryFile("w", delete=False) as handle:
-        handle.write(private_key)
-        temp_private_path = handle.name
-
-    os.chmod(temp_private_path, stat.S_IRUSR | stat.S_IWUSR)
-    try:
-        public_value = normalize_public_key(
-            run("ssh-keygen", "-y", "-f", temp_private_path)
-        )
-    except subprocess.CalledProcessError:
-        os.unlink(temp_private_path)
-        continue
-    finally:
-        if os.path.exists(temp_private_path):
-            os.unlink(temp_private_path)
-
-    if public_value:
-        matches[public_value] = {
-            "title": title,
-            "private_key": private_key,
-        }
-
-missing = []
-
-for public_path, private_path in pairs:
-    public_value = normalize_public_key(public_path.read_text().strip())
-    match = matches.get(public_value)
-    if not match:
-        missing.append(public_path.name)
-        continue
-
-    private_path.write_text(match["private_key"])
-    os.chmod(private_path, stat.S_IRUSR | stat.S_IWUSR)
-    print(f"[bootstrap] Synced {private_path.name} from 1Password item '{match['title']}'")
-
-if missing:
-    print(
-        "[bootstrap] Could not find matching 1Password SSH Key items for: "
-        + ", ".join(missing),
-        file=sys.stderr,
-    )
-PY
-}
-
 render_zed_settings() {
   local context7_api_key escaped_key
 
@@ -556,28 +428,78 @@ run_1password_checkpoint() {
 }
 
 run_1password_ssh_agent_checkpoint() {
-  if [[ -S "${ONEPASSWORD_SSH_AGENT_SOCKET}" ]]; then
-    log "1Password SSH agent socket is available"
-    return
-  fi
-
   if [[ ! -t 0 ]]; then
-    log "1Password SSH agent socket is not available yet; configure the 1Password desktop app later if needed"
+    if [[ -S "${ONEPASSWORD_SSH_AGENT_SOCKET}" ]]; then
+      log "1Password SSH agent socket is available"
+    else
+      log "1Password SSH agent socket is not available yet; configure the 1Password desktop app later if needed"
+    fi
     return
   fi
 
-  printf '\n'
-  printf '1Password SSH agent is not available yet.\n'
-  printf 'Open the 1Password desktop app, sign in, and enable SSH agent support.\n'
-  printf 'Expected socket: %s\n' "${ONEPASSWORD_SSH_AGENT_SOCKET}"
-  printf 'Press Enter to continue once the SSH agent is ready, or use Ctrl-C to stop bootstrap.\n'
-  IFS= read -r _
+  # Wait for the agent socket to appear
+  while [[ ! -S "${ONEPASSWORD_SSH_AGENT_SOCKET}" ]]; do
+    printf '\n'
+    printf '1Password SSH agent is not available yet.\n'
+    printf 'Open the 1Password desktop app → Settings → Developer → enable "Use the SSH agent".\n'
+    printf 'Expected socket: %s\n' "${ONEPASSWORD_SSH_AGENT_SOCKET}"
+    printf 'Press Enter to retry, or type "skip" to continue without it: '
+    IFS= read -r choice
+    if [[ "${choice}" == "skip" ]]; then
+      log "Skipping 1Password SSH agent checkpoint by user request"
+      return
+    fi
+  done
 
-  if [[ -S "${ONEPASSWORD_SSH_AGENT_SOCKET}" ]]; then
-    log "1Password SSH agent socket is available"
-  else
-    log "1Password SSH agent socket is still unavailable; SSH config is in place, but agent-backed auth may not work until 1Password is ready"
+  log "1Password SSH agent socket is available"
+
+  # Verify the agent holds keys matching tracked public keys
+  local agent_keys missing_keys=()
+  agent_keys="$(SSH_AUTH_SOCK="${ONEPASSWORD_SSH_AGENT_SOCKET}" ssh-add -L 2>/dev/null || true)"
+
+  local pub_file
+  for pub_file in "${REPO_SSH_PUBLIC_KEY_ED25519}" "${REPO_SSH_PUBLIC_KEY_MACAIR}"; do
+    if [[ ! -f "${pub_file}" ]]; then
+      continue
+    fi
+    local pub_value
+    pub_value="$(awk '{print $1, $2}' "${pub_file}")"
+    if ! printf '%s\n' "${agent_keys}" | grep -qF "${pub_value}"; then
+      missing_keys+=("$(basename "${pub_file}")")
+    fi
+  done
+
+  if [[ ${#missing_keys[@]} -eq 0 ]]; then
+    log "1Password SSH agent holds all tracked SSH keys"
+    return
   fi
+
+  while [[ ${#missing_keys[@]} -gt 0 ]]; do
+    printf '\n'
+    printf '1Password SSH agent is missing keys for: %s\n' "${missing_keys[*]}"
+    printf 'Import them in 1Password: + New Item → SSH Key → Import an SSH Key.\n'
+    printf 'Press Enter to retry, or type "skip" to continue without them: '
+    IFS= read -r choice
+    if [[ "${choice}" == "skip" ]]; then
+      log "Skipping SSH key verification by user request"
+      return
+    fi
+
+    agent_keys="$(SSH_AUTH_SOCK="${ONEPASSWORD_SSH_AGENT_SOCKET}" ssh-add -L 2>/dev/null || true)"
+    missing_keys=()
+    for pub_file in "${REPO_SSH_PUBLIC_KEY_ED25519}" "${REPO_SSH_PUBLIC_KEY_MACAIR}"; do
+      if [[ ! -f "${pub_file}" ]]; then
+        continue
+      fi
+      local pub_value
+      pub_value="$(awk '{print $1, $2}' "${pub_file}")"
+      if ! printf '%s\n' "${agent_keys}" | grep -qF "${pub_value}"; then
+        missing_keys+=("$(basename "${pub_file}")")
+      fi
+    done
+  done
+
+  log "1Password SSH agent holds all tracked SSH keys"
 }
 
 install_mise_node_tools() {
@@ -633,7 +555,6 @@ main() {
   run_1password_checkpoint
   link_zed_settings
   link_zed_keymap
-  sync_ssh_private_keys_from_1password
   run_1password_ssh_agent_checkpoint
   install_mise_node_tools
   log "Bootstrap complete"
