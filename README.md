@@ -38,13 +38,13 @@ Bootstrap a machine:
 By default, bootstrap links `~/.config` to the shared iCloud Drive config root at:
 
 ```bash
-$HOME/Library/Mobile Documents/com~apple~CloudDocs/dev/configs
+$HOME/Library/Mobile Documents/com~apple~CloudDocs/Dev/configs
 ```
 
 By default, bootstrap also links `~/.ssh` to:
 
 ```bash
-$HOME/Library/Mobile Documents/com~apple~CloudDocs/dev/configs/.ssh
+$HOME/Library/Mobile Documents/com~apple~CloudDocs/Dev/configs/.ssh
 ```
 
 Override that path for a different machine or layout:
@@ -125,7 +125,7 @@ Note: iCloud-backed `~/.config` and `~/.ssh` symlinks are intentionally preserve
 
 ## SSH Scope
 
-SSH lives in iCloud Drive at `~/Library/Mobile Documents/com~apple~CloudDocs/dev/configs/.ssh/`.
+SSH lives in iCloud Drive at `~/Library/Mobile Documents/com~apple~CloudDocs/Dev/configs/.ssh/`.
 
 This means:
 
