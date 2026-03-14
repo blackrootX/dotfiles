@@ -21,6 +21,8 @@ HOMEBREW_INSTALL_SCRIPT_URL="https://raw.githubusercontent.com/Homebrew/install/
 DEFAULT_ICLOUD_CONFIG_DIR="${HOME}/Library/Mobile Documents/com~apple~CloudDocs/Dev/configs"
 ICLOUD_CONFIG_DIR="${ICLOUD_CONFIG_DIR:-${DEFAULT_ICLOUD_CONFIG_DIR}}"
 ICLOUD_SSH_DIR="${ICLOUD_SSH_DIR:-${ICLOUD_CONFIG_DIR}/.ssh}"
+ICLOUD_AGENTS_DIR="${ICLOUD_AGENTS_DIR:-${ICLOUD_CONFIG_DIR}/.agents}"
+LOCAL_AGENTS_DIR="${HOME}/.agents"
 
 log() {
   printf '[bootstrap] %s\n' "$1"
@@ -205,6 +207,31 @@ ensure_local_ssh_root() {
   ln -s "${ICLOUD_SSH_DIR}" "${LOCAL_SSH_DIR}"
 }
 
+ensure_local_agents_root() {
+  mkdir -p "${ICLOUD_AGENTS_DIR}"
+
+  if [[ -L "${LOCAL_AGENTS_DIR}" ]]; then
+    local current_target
+    current_target="$(readlink "${LOCAL_AGENTS_DIR}")"
+
+    if [[ "${current_target}" == "${ICLOUD_AGENTS_DIR}" ]]; then
+      log "Local .agents already points to iCloud agents root"
+      return
+    fi
+
+    log "Replacing existing .agents symlink"
+    rm -f "${LOCAL_AGENTS_DIR}"
+  elif [[ -e "${LOCAL_AGENTS_DIR}" ]]; then
+    local backup_path
+    backup_path="${LOCAL_AGENTS_DIR}.pre-icloud-link.$(date +%Y%m%d%H%M%S)"
+    log "Moving existing .agents to backup at ${backup_path}"
+    mv "${LOCAL_AGENTS_DIR}" "${backup_path}"
+  fi
+
+  log "Linking ${LOCAL_AGENTS_DIR} to iCloud agents root ${ICLOUD_AGENTS_DIR}"
+  ln -s "${ICLOUD_AGENTS_DIR}" "${LOCAL_AGENTS_DIR}"
+}
+
 link_zprofile() {
   link_managed_file "${REPO_ZPROFILE}" "${LOCAL_ZPROFILE}" ".zprofile"
 }
@@ -355,6 +382,7 @@ main() {
   configure_homebrew_china_mirror
   ensure_local_config_root
   ensure_local_ssh_root
+  ensure_local_agents_root
   link_zprofile
   link_zshrc
   link_zsh_plugins
