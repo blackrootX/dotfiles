@@ -81,8 +81,6 @@ Remove the managed setup:
   - `~/.zsh_plugins.txt`
 - installs Homebrew taps, formulae, and casks from `Brewfile` with per-item progress logs
 - pre-generates the Antidote plugin bundle after `antidote` is installed from `Brewfile`
-- offers an interactive `y/N` 1Password CLI sign-in checkpoint
-- verifies the 1Password SSH agent against the public keys already present in the iCloud-backed `~/.ssh/`
 - trusts the `mise` config (from iCloud-backed `~/.config/mise/config.toml`) and installs its declared tools
 - retries `mise` installs with `MISE_ALL_COMPILE=1` if a prebuilt runtime download fails
 
@@ -133,8 +131,7 @@ This means:
 
 - bootstrap links `~/.ssh` to that iCloud directory
 - SSH config, public keys, private keys, and host trust files all live in the cloud-backed `~/.ssh/`
-- after `op` sign-in, bootstrap verifies that the 1Password SSH agent exposes the public keys already stored in that directory
-- the SSH config can still point at private key paths in `~/.ssh/` and also use the 1Password SSH agent when the socket at `~/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock` is available
+- private keys sync via iCloud so no extraction from 1Password is needed
 
 ## Idempotency
 

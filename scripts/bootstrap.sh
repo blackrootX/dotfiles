@@ -18,7 +18,6 @@ LOCAL_SSH_DIR="${HOME}/.ssh"
 LOCAL_MISE_CONFIG="${HOME}/.config/mise/config.toml"
 HOMEBREW_TUNA_GIT_MIRROR="https://mirrors.tuna.tsinghua.edu.cn/git/homebrew"
 HOMEBREW_INSTALL_SCRIPT_URL="https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh"
-ONEPASSWORD_SSH_AGENT_SOCKET="${HOME}/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock"
 DEFAULT_ICLOUD_CONFIG_DIR="${HOME}/Library/Mobile Documents/com~apple~CloudDocs/dev/configs"
 ICLOUD_CONFIG_DIR="${ICLOUD_CONFIG_DIR:-${DEFAULT_ICLOUD_CONFIG_DIR}}"
 ICLOUD_SSH_DIR="${ICLOUD_SSH_DIR:-${ICLOUD_CONFIG_DIR}/.ssh}"
@@ -317,130 +316,6 @@ prime_antidote_bundle() {
     '
 }
 
-run_1password_checkpoint() {
-  if ! command -v op >/dev/null 2>&1; then
-    log "1Password CLI is not installed, skipping 1Password checkpoint"
-    return
-  fi
-
-  if op whoami >/dev/null 2>&1; then
-    log "1Password CLI is already signed in"
-    return
-  fi
-
-  if [[ ! -t 0 ]]; then
-    log "Skipping 1Password sign-in checkpoint because this shell is non-interactive"
-    return
-  fi
-
-  local choice
-  printf '\n'
-  printf '1Password CLI is installed but not signed in yet.\n'
-  printf 'This is the manual checkpoint for a new Mac before any secret-backed setup.\n'
-  printf 'Run 1Password CLI sign-in now? [y/N]: '
-  IFS= read -r choice
-
-  if [[ ! "${choice}" =~ ^[Yy]$ ]]; then
-    log "Skipping 1Password sign-in checkpoint by user request"
-    return
-  fi
-
-  log "Starting 1Password CLI sign-in"
-  if ! eval "$(op signin)"; then
-    printf '1Password CLI sign-in did not complete successfully.\n' >&2
-    printf 'Rerun bootstrap later or sign in manually with `eval $(op signin)`.\n' >&2
-    exit 1
-  fi
-
-  if ! op whoami >/dev/null 2>&1; then
-    printf '1Password CLI sign-in did not leave an active session.\n' >&2
-    printf 'Rerun bootstrap later or sign in manually with `eval $(op signin)`.\n' >&2
-    exit 1
-  fi
-
-  log "1Password CLI sign-in complete"
-}
-
-run_1password_ssh_agent_checkpoint() {
-  if [[ ! -t 0 ]]; then
-    if [[ -S "${ONEPASSWORD_SSH_AGENT_SOCKET}" ]]; then
-      log "1Password SSH agent socket is available"
-    else
-      log "1Password SSH agent socket is not available yet; configure the 1Password desktop app later if needed"
-    fi
-    return
-  fi
-
-  # Wait for the agent socket to appear
-  while [[ ! -S "${ONEPASSWORD_SSH_AGENT_SOCKET}" ]]; do
-    printf '\n'
-    printf '1Password SSH agent is not available yet.\n'
-    printf 'Open the 1Password desktop app → Settings → Developer → enable "Use the SSH agent".\n'
-    printf 'Expected socket: %s\n' "${ONEPASSWORD_SSH_AGENT_SOCKET}"
-    printf 'Press Enter to retry, or type "skip" to continue without it: '
-    IFS= read -r choice
-    if [[ "${choice}" == "skip" ]]; then
-      log "Skipping 1Password SSH agent checkpoint by user request"
-      return
-    fi
-  done
-
-  log "1Password SSH agent socket is available"
-
-  # Verify the agent holds keys matching tracked public keys
-  local agent_keys missing_keys=()
-  agent_keys="$(SSH_AUTH_SOCK="${ONEPASSWORD_SSH_AGENT_SOCKET}" ssh-add -L 2>/dev/null || true)"
-
-  local pub_files=()
-  local pub_file
-  while IFS= read -r pub_file; do
-    pub_files+=("${pub_file}")
-  done < <(find "${ICLOUD_SSH_DIR}" -maxdepth 1 -type f -name '*.pub' | sort)
-
-  for pub_file in "${pub_files[@]}"; do
-    if [[ ! -f "${pub_file}" ]]; then
-      continue
-    fi
-    local pub_value
-    pub_value="$(awk '{print $1, $2}' "${pub_file}")"
-    if ! printf '%s\n' "${agent_keys}" | grep -qF "${pub_value}"; then
-      missing_keys+=("$(basename "${pub_file}")")
-    fi
-  done
-
-  if [[ ${#missing_keys[@]} -eq 0 ]]; then
-    log "1Password SSH agent holds all tracked SSH keys"
-    return
-  fi
-
-  while [[ ${#missing_keys[@]} -gt 0 ]]; do
-    printf '\n'
-    printf '1Password SSH agent is missing keys for: %s\n' "${missing_keys[*]}"
-    printf 'Import them in 1Password: + New Item → SSH Key → Import an SSH Key.\n'
-    printf 'Press Enter to retry, or type "skip" to continue without them: '
-    IFS= read -r choice
-    if [[ "${choice}" == "skip" ]]; then
-      log "Skipping SSH key verification by user request"
-      return
-    fi
-
-    agent_keys="$(SSH_AUTH_SOCK="${ONEPASSWORD_SSH_AGENT_SOCKET}" ssh-add -L 2>/dev/null || true)"
-    missing_keys=()
-    for pub_file in "${pub_files[@]}"; do
-      if [[ ! -f "${pub_file}" ]]; then
-        continue
-      fi
-      local pub_value
-      pub_value="$(awk '{print $1, $2}' "${pub_file}")"
-      if ! printf '%s\n' "${agent_keys}" | grep -qF "${pub_value}"; then
-        missing_keys+=("$(basename "${pub_file}")")
-      fi
-    done
-  done
-
-  log "1Password SSH agent holds all tracked SSH keys"
-}
-
 install_mise_node_tools() {
   if ! command -v mise >/dev/null 2>&1; then
     printf 'mise is required but was not found after Brewfile install.\n' >&2
@@ -485,8 +360,6 @@ main() {
   link_zsh_plugins
   install_brew_bundle
   prime_antidote_bundle
-  run_1password_checkpoint
-  run_1password_ssh_agent_checkpoint
   install_mise_node_tools
   log "Bootstrap complete"
 }
