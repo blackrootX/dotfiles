@@ -61,18 +61,6 @@ ensure_mas_installed() {
   brew install mas
 }
 
-require_app_store_login() {
-  if mas account >/dev/null 2>&1; then
-    return
-  fi
-
-  cat >&2 <<'EOF'
-Sign in to the Mac App Store first, then rerun this script.
-You can open the App Store app and confirm your account there.
-EOF
-  exit 1
-}
-
 install_app() {
   local app_id="$1"
   local app_name="$2"
@@ -83,7 +71,16 @@ install_app() {
   fi
 
   log "Installing App Store app: ${app_name}"
-  mas install "${app_id}"
+  if mas install "${app_id}"; then
+    return
+  fi
+
+  cat >&2 <<EOF
+Failed to install ${app_name} from the Mac App Store.
+If you already signed in, open the App Store app once and finish any pending prompts,
+then rerun this script.
+EOF
+  exit 1
 }
 
 main() {
@@ -91,7 +88,6 @@ main() {
   ensure_brew_in_path
   configure_homebrew_china_mirror
   ensure_mas_installed
-  require_app_store_login
   install_app "937984704" "Amphetamine"
   install_app "1551531632" "AutoSwitchInput Pro"
   install_app "1136220934" "Infuse"
