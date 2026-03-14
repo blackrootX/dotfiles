@@ -19,9 +19,9 @@ LOCAL_MISE_CONFIG="${HOME}/.config/mise/config.toml"
 HOMEBREW_TUNA_GIT_MIRROR="https://mirrors.tuna.tsinghua.edu.cn/git/homebrew"
 HOMEBREW_INSTALL_SCRIPT_URL="https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh"
 ONEPASSWORD_SSH_AGENT_SOCKET="${HOME}/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock"
-DEFAULT_ICLOUD_CONFIG_DIR="${HOME}/Library/Mobile Documents/com~apple~CloudDocs/dev/config"
+DEFAULT_ICLOUD_CONFIG_DIR="${HOME}/Library/Mobile Documents/com~apple~CloudDocs/dev/configs"
 ICLOUD_CONFIG_DIR="${ICLOUD_CONFIG_DIR:-${DEFAULT_ICLOUD_CONFIG_DIR}}"
-ICLOUD_SSH_DIR="${ICLOUD_SSH_DIR:-${ICLOUD_CONFIG_DIR}/ssh}"
+ICLOUD_SSH_DIR="${ICLOUD_SSH_DIR:-${ICLOUD_CONFIG_DIR}/.ssh}"
 
 log() {
   printf '[bootstrap] %s\n' "$1"
