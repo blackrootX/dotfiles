@@ -9,39 +9,19 @@ CONFIGS_DIR="${REPO_ROOT}/configs"
 REPO_ZPROFILE="${CONFIGS_DIR}/zsh/.zprofile"
 REPO_ZSHRC="${CONFIGS_DIR}/zsh/.zshrc"
 REPO_ZSH_PLUGINS="${CONFIGS_DIR}/zsh/.zsh_plugins.txt"
-REPO_STARSHIP_CONFIG="${CONFIGS_DIR}/starship/starship.toml"
-REPO_GHOSTTY_DIR="${CONFIGS_DIR}/ghostty"
-REPO_MISE_CONFIG="${CONFIGS_DIR}/mise/config.toml"
-REPO_EZA_CONFIG_DIR="${CONFIGS_DIR}/eza"
-REPO_GIT_CONFIG_DIR="${CONFIGS_DIR}/git"
-REPO_GITCONFIG="${REPO_GIT_CONFIG_DIR}/.gitconfig"
-REPO_GH_CONFIG="${REPO_GIT_CONFIG_DIR}/config.yml"
-REPO_SSH_CONFIG_DIR="${CONFIGS_DIR}/ssh"
-REPO_SSH_CONFIG="${REPO_SSH_CONFIG_DIR}/config"
-REPO_SSH_PUBLIC_KEY_ED25519="${REPO_SSH_CONFIG_DIR}/id_ed25519.pub"
-REPO_SSH_PUBLIC_KEY_MACAIR="${REPO_SSH_CONFIG_DIR}/{macair}.pub"
-REPO_ZED_SETTINGS_TEMPLATE="${CONFIGS_DIR}/zed/settings.json.tmpl"
-REPO_ZED_KEYMAP="${CONFIGS_DIR}/zed/keymap.json"
 LOCAL_ZPROFILE="${HOME}/.zprofile"
 LOCAL_ZSHRC="${HOME}/.zshrc"
 LOCAL_ZSH_PLUGINS="${HOME}/.zsh_plugins.txt"
 LOCAL_ZSH_PLUGIN_BUNDLE="${HOME}/.zsh_plugins.zsh"
-LOCAL_STARSHIP_CONFIG="${HOME}/.config/starship.toml"
-LOCAL_GHOSTTY_DIR="${HOME}/.config/ghostty"
+LOCAL_CONFIG_DIR="${HOME}/.config"
+LOCAL_SSH_DIR="${HOME}/.ssh"
 LOCAL_MISE_CONFIG="${HOME}/.config/mise/config.toml"
-LOCAL_EZA_CONFIG_DIR="${HOME}/.config/eza"
-LOCAL_GITCONFIG="${HOME}/.gitconfig"
-LOCAL_GH_CONFIG="${HOME}/.config/gh/config.yml"
-LOCAL_SSH_CONFIG="${HOME}/.ssh/config"
-LOCAL_SSH_PUBLIC_KEY_ED25519="${HOME}/.ssh/id_ed25519.pub"
-LOCAL_SSH_PUBLIC_KEY_MACAIR="${HOME}/.ssh/{macair}.pub"
-LOCAL_ZED_SETTINGS="${HOME}/.config/zed/settings.json"
-LOCAL_ZED_KEYMAP="${HOME}/.config/zed/keymap.json"
 HOMEBREW_TUNA_GIT_MIRROR="https://mirrors.tuna.tsinghua.edu.cn/git/homebrew"
 HOMEBREW_INSTALL_SCRIPT_URL="https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh"
-CONTEXT7_VAULT="Employee"
-CONTEXT7_ITEM_TITLE="Context7 API Key"
 ONEPASSWORD_SSH_AGENT_SOCKET="${HOME}/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock"
+DEFAULT_ICLOUD_CONFIG_DIR="${HOME}/Library/Mobile Documents/com~apple~CloudDocs/dev/config"
+ICLOUD_CONFIG_DIR="${ICLOUD_CONFIG_DIR:-${DEFAULT_ICLOUD_CONFIG_DIR}}"
+ICLOUD_SSH_DIR="${ICLOUD_SSH_DIR:-${ICLOUD_CONFIG_DIR}/ssh}"
 
 log() {
   printf '[bootstrap] %s\n' "$1"
@@ -175,6 +155,57 @@ link_managed_file() {
   ln -s "${source_path}" "${target_path}"
 }
 
+ensure_local_config_root() {
+  mkdir -p "${ICLOUD_CONFIG_DIR}"
+
+  if [[ -L "${LOCAL_CONFIG_DIR}" ]]; then
+    local current_target
+    current_target="$(readlink "${LOCAL_CONFIG_DIR}")"
+
+    if [[ "${current_target}" == "${ICLOUD_CONFIG_DIR}" ]]; then
+      log "Local .config already points to iCloud config root"
+      return
+    fi
+
+    log "Replacing existing .config symlink"
+    rm -f "${LOCAL_CONFIG_DIR}"
+  elif [[ -e "${LOCAL_CONFIG_DIR}" ]]; then
+    local backup_path
+    backup_path="${LOCAL_CONFIG_DIR}.pre-icloud-link.$(date +%Y%m%d%H%M%S)"
+    log "Moving existing .config to backup at ${backup_path}"
+    mv "${LOCAL_CONFIG_DIR}" "${backup_path}"
+  fi
+
+  log "Linking ${LOCAL_CONFIG_DIR} to iCloud config root ${ICLOUD_CONFIG_DIR}"
+  ln -s "${ICLOUD_CONFIG_DIR}" "${LOCAL_CONFIG_DIR}"
+}
+
+ensure_local_ssh_root() {
+  mkdir -p "${ICLOUD_SSH_DIR}"
+  chmod 700 "${ICLOUD_SSH_DIR}"
+
+  if [[ -L "${LOCAL_SSH_DIR}" ]]; then
+    local current_target
+    current_target="$(readlink "${LOCAL_SSH_DIR}")"
+
+    if [[ "${current_target}" == "${ICLOUD_SSH_DIR}" ]]; then
+      log "Local .ssh already points to iCloud SSH root"
+      return
+    fi
+
+    log "Replacing existing .ssh symlink"
+    rm -f "${LOCAL_SSH_DIR}"
+  elif [[ -e "${LOCAL_SSH_DIR}" ]]; then
+    local backup_path
+    backup_path="${LOCAL_SSH_DIR}.pre-icloud-link.$(date +%Y%m%d%H%M%S)"
+    log "Moving existing .ssh to backup at ${backup_path}"
+    mv "${LOCAL_SSH_DIR}" "${backup_path}"
+  fi
+
+  log "Linking ${LOCAL_SSH_DIR} to iCloud SSH root ${ICLOUD_SSH_DIR}"
+  ln -s "${ICLOUD_SSH_DIR}" "${LOCAL_SSH_DIR}"
+}
+
 link_zprofile() {
   link_managed_file "${REPO_ZPROFILE}" "${LOCAL_ZPROFILE}" ".zprofile"
 }
@@ -188,103 +219,6 @@ link_zsh_plugins() {
     "${REPO_ZSH_PLUGINS}" \
     "${LOCAL_ZSH_PLUGINS}" \
     ".zsh_plugins.txt"
-}
-
-link_starship_config() {
-  link_managed_file \
-    "${REPO_STARSHIP_CONFIG}" \
-    "${LOCAL_STARSHIP_CONFIG}" \
-    "starship config"
-}
-
-link_ghostty_config() {
-  link_managed_file \
-    "${REPO_GHOSTTY_DIR}" \
-    "${LOCAL_GHOSTTY_DIR}" \
-    "Ghostty config"
-}
-
-link_mise_config() {
-  link_managed_file \
-    "${REPO_MISE_CONFIG}" \
-    "${LOCAL_MISE_CONFIG}" \
-    "mise config"
-}
-
-link_eza_config() {
-  link_managed_file \
-    "${REPO_EZA_CONFIG_DIR}" \
-    "${LOCAL_EZA_CONFIG_DIR}" \
-    "eza config"
-}
-
-link_gitconfig() {
-  link_managed_file \
-    "${REPO_GITCONFIG}" \
-    "${LOCAL_GITCONFIG}" \
-    "Git config"
-}
-
-link_gh_config() {
-  link_managed_file \
-    "${REPO_GH_CONFIG}" \
-    "${LOCAL_GH_CONFIG}" \
-    "GitHub CLI config"
-}
-
-link_ssh_config() {
-  link_managed_file \
-    "${REPO_SSH_CONFIG}" \
-    "${LOCAL_SSH_CONFIG}" \
-    "SSH config"
-}
-
-link_ssh_public_keys() {
-  link_managed_file \
-    "${REPO_SSH_PUBLIC_KEY_ED25519}" \
-    "${LOCAL_SSH_PUBLIC_KEY_ED25519}" \
-    "SSH public key id_ed25519.pub"
-
-  link_managed_file \
-    "${REPO_SSH_PUBLIC_KEY_MACAIR}" \
-    "${LOCAL_SSH_PUBLIC_KEY_MACAIR}" \
-    "SSH public key {macair}.pub"
-}
-
-render_zed_settings() {
-  local context7_api_key escaped_key
-
-  mkdir -p "$(dirname "${LOCAL_ZED_SETTINGS}")"
-
-  if [[ ! -f "${REPO_ZED_SETTINGS_TEMPLATE}" ]]; then
-    printf 'Managed Zed settings template not found: %s\n' "${REPO_ZED_SETTINGS_TEMPLATE}" >&2
-    exit 1
-  fi
-
-  context7_api_key=""
-  if command -v op >/dev/null 2>&1 && op whoami >/dev/null 2>&1; then
-    context7_api_key="$(op item get "${CONTEXT7_ITEM_TITLE}" --vault "${CONTEXT7_VAULT}" --fields credential 2>/dev/null || true)"
-  fi
-
-  if [[ -z "${context7_api_key}" ]]; then
-    log "Rendering Zed settings without Context7 API key"
-  else
-    log "Rendering Zed settings with Context7 API key from 1Password"
-  fi
-
-  escaped_key="$(printf '%s' "${context7_api_key}" | sed 's/[\/&]/\\&/g')"
-  sed "s/__CONTEXT7_API_KEY__/${escaped_key}/g" "${REPO_ZED_SETTINGS_TEMPLATE}" > "${LOCAL_ZED_SETTINGS}"
-}
-
-link_zed_settings() {
-  render_zed_settings
-}
-
-link_zed_keymap() {
-  link_managed_file \
-    "${REPO_ZED_KEYMAP}" \
-    "${LOCAL_ZED_KEYMAP}" \
-    "Zed keymap"
 }
 
 install_brew_bundle() {
@@ -457,8 +391,13 @@ run_1password_ssh_agent_checkpoint() {
   local agent_keys missing_keys=()
   agent_keys="$(SSH_AUTH_SOCK="${ONEPASSWORD_SSH_AGENT_SOCKET}" ssh-add -L 2>/dev/null || true)"
 
+  local pub_files=()
   local pub_file
-  for pub_file in "${REPO_SSH_PUBLIC_KEY_ED25519}" "${REPO_SSH_PUBLIC_KEY_MACAIR}"; do
+  while IFS= read -r pub_file; do
+    pub_files+=("${pub_file}")
+  done < <(find "${ICLOUD_SSH_DIR}" -maxdepth 1 -type f -name '*.pub' | sort)
+
+  for pub_file in "${pub_files[@]}"; do
     if [[ ! -f "${pub_file}" ]]; then
       continue
     fi
@@ -487,7 +426,7 @@ run_1password_ssh_agent_checkpoint() {
 
     agent_keys="$(SSH_AUTH_SOCK="${ONEPASSWORD_SSH_AGENT_SOCKET}" ssh-add -L 2>/dev/null || true)"
     missing_keys=()
-    for pub_file in "${REPO_SSH_PUBLIC_KEY_ED25519}" "${REPO_SSH_PUBLIC_KEY_MACAIR}"; do
+    for pub_file in "${pub_files[@]}"; do
       if [[ ! -f "${pub_file}" ]]; then
         continue
       fi
@@ -508,28 +447,28 @@ install_mise_node_tools() {
     exit 1
   fi
 
-  if [[ ! -f "${REPO_MISE_CONFIG}" ]]; then
-    printf 'mise config not found: %s\n' "${REPO_MISE_CONFIG}" >&2
+  if [[ ! -f "${LOCAL_MISE_CONFIG}" ]]; then
+    printf 'mise config not found: %s\n' "${LOCAL_MISE_CONFIG}" >&2
     exit 1
   fi
 
-  log "Trusting repo-managed mise config"
-  mise trust "${REPO_MISE_CONFIG}"
+  log "Trusting mise config"
+  mise trust "${LOCAL_MISE_CONFIG}"
 
-  if grep -q '"pipx:' "${REPO_MISE_CONFIG}" && ! command -v pipx >/dev/null 2>&1; then
+  if grep -q '"pipx:' "${LOCAL_MISE_CONFIG}" && ! command -v pipx >/dev/null 2>&1; then
     log "Installing pipx for repo-managed mise pipx tools"
     brew install pipx
   fi
 
-  log "Installing repo-managed mise tools from global config"
-  if ! mise install -C "${CONFIGS_DIR}/mise" -y; then
+  log "Installing mise tools from global config"
+  if ! mise install -y; then
     log "Retrying mise install with source builds enabled"
-    MISE_ALL_COMPILE=1 mise install -C "${CONFIGS_DIR}/mise" -y
+    MISE_ALL_COMPILE=1 mise install -y
   fi
 
-  if grep -q '"pipx:browser-use"' "${REPO_MISE_CONFIG}"; then
+  if grep -q '"pipx:browser-use"' "${LOCAL_MISE_CONFIG}"; then
     log "Installing browser-use Chromium runtime"
-    mise exec -C "${CONFIGS_DIR}/mise" -- uvx browser-use install
+    mise exec -- uvx browser-use install
   fi
 }
 
@@ -539,22 +478,14 @@ main() {
   install_homebrew
   ensure_brew_in_path
   configure_homebrew_china_mirror
+  ensure_local_config_root
+  ensure_local_ssh_root
   link_zprofile
   link_zshrc
   link_zsh_plugins
-  link_starship_config
-  link_ghostty_config
-  link_mise_config
-  link_eza_config
-  link_gitconfig
-  link_gh_config
-  link_ssh_config
-  link_ssh_public_keys
   install_brew_bundle
   prime_antidote_bundle
   run_1password_checkpoint
-  link_zed_settings
-  link_zed_keymap
   run_1password_ssh_agent_checkpoint
   install_mise_node_tools
   log "Bootstrap complete"

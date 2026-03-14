@@ -1,8 +1,0 @@
-[tools]
-"bun" = "latest"
-"node" = "latest"
-"python" = "latest"
-"uv" = "latest"
-"pipx:browser-use" = "latest"
-"npm:typescript" = "latest"
-"npm:typescript-language-server" = "latest"

@@ -9,39 +9,14 @@ CONFIGS_DIR="${REPO_ROOT}/configs"
 REPO_ZPROFILE="${CONFIGS_DIR}/zsh/.zprofile"
 REPO_ZSHRC="${CONFIGS_DIR}/zsh/.zshrc"
 REPO_ZSH_PLUGINS="${CONFIGS_DIR}/zsh/.zsh_plugins.txt"
-REPO_STARSHIP_CONFIG="${CONFIGS_DIR}/starship/starship.toml"
-REPO_GHOSTTY_DIR="${CONFIGS_DIR}/ghostty"
-REPO_MISE_CONFIG="${CONFIGS_DIR}/mise/config.toml"
-REPO_EZA_CONFIG_DIR="${CONFIGS_DIR}/eza"
-REPO_GIT_CONFIG_DIR="${CONFIGS_DIR}/git"
-REPO_GITCONFIG="${REPO_GIT_CONFIG_DIR}/.gitconfig"
-REPO_GH_CONFIG="${REPO_GIT_CONFIG_DIR}/config.yml"
-REPO_SSH_CONFIG_DIR="${CONFIGS_DIR}/ssh"
-REPO_SSH_CONFIG="${REPO_SSH_CONFIG_DIR}/config"
-REPO_SSH_PUBLIC_KEY_ED25519="${REPO_SSH_CONFIG_DIR}/id_ed25519.pub"
-REPO_SSH_PUBLIC_KEY_MACAIR="${REPO_SSH_CONFIG_DIR}/{macair}.pub"
-REPO_ZED_SETTINGS_TEMPLATE="${CONFIGS_DIR}/zed/settings.json.tmpl"
-REPO_ZED_KEYMAP="${CONFIGS_DIR}/zed/keymap.json"
 LOCAL_ZPROFILE="${HOME}/.zprofile"
 LOCAL_ZSHRC="${HOME}/.zshrc"
 LOCAL_ZSH_PLUGINS="${HOME}/.zsh_plugins.txt"
 LOCAL_ZSH_PLUGIN_BUNDLE="${HOME}/.zsh_plugins.zsh"
 LOCAL_ANTIDOTE_DIR="${HOME}/Library/Caches/antidote"
-LOCAL_STARSHIP_CONFIG="${HOME}/.config/starship.toml"
-LOCAL_GHOSTTY_DIR="${HOME}/.config/ghostty"
-LOCAL_MISE_CONFIG="${HOME}/.config/mise/config.toml"
-LOCAL_EZA_CONFIG_DIR="${HOME}/.config/eza"
-LOCAL_GITCONFIG="${HOME}/.gitconfig"
-LOCAL_GH_CONFIG="${HOME}/.config/gh/config.yml"
-LOCAL_SSH_CONFIG="${HOME}/.ssh/config"
-LOCAL_SSH_PUBLIC_KEY_ED25519="${HOME}/.ssh/id_ed25519.pub"
-LOCAL_SSH_PUBLIC_KEY_MACAIR="${HOME}/.ssh/{macair}.pub"
-LOCAL_ZED_SETTINGS="${HOME}/.config/zed/settings.json"
-LOCAL_ZED_KEYMAP="${HOME}/.config/zed/keymap.json"
 LEGACY_ZPROFILE_BACKUP="${HOME}/.zprofile.pre-dotfiles-backup"
 LEGACY_ZSHRC_BACKUP="${HOME}/.zshrc.pre-dotfiles-backup"
 LEGACY_ZSH_PLUGINS_BACKUP="${HOME}/.zsh_plugins.txt.pre-dotfiles-backup"
-LEGACY_STARSHIP_CONFIG_BACKUP="${HOME}/.config/starship.toml.pre-dotfiles-backup"
 HOMEBREW_TUNA_GIT_MIRROR="https://mirrors.tuna.tsinghua.edu.cn/git/homebrew"
 HOMEBREW_UNINSTALL_SCRIPT_URL="https://raw.githubusercontent.com/Homebrew/install/HEAD/uninstall.sh"
 CLEANUP_COMPLETE=0
@@ -219,88 +194,12 @@ cleanup_antidote_artifacts() {
   fi
 }
 
-cleanup_starship_config() {
-  cleanup_managed_file \
-    "${REPO_STARSHIP_CONFIG}" \
-    "${LOCAL_STARSHIP_CONFIG}" \
-    "starship config"
-}
-
-cleanup_ghostty_config() {
-  cleanup_managed_file \
-    "${REPO_GHOSTTY_DIR}" \
-    "${LOCAL_GHOSTTY_DIR}" \
-    "Ghostty config"
-}
-
-cleanup_mise_config() {
-  cleanup_managed_file \
-    "${REPO_MISE_CONFIG}" \
-    "${LOCAL_MISE_CONFIG}" \
-    "mise config"
-}
-
-cleanup_eza_config() {
-  cleanup_managed_file \
-    "${REPO_EZA_CONFIG_DIR}" \
-    "${LOCAL_EZA_CONFIG_DIR}" \
-    "eza config"
-}
-
-cleanup_gitconfig() {
-  cleanup_managed_file \
-    "${REPO_GITCONFIG}" \
-    "${LOCAL_GITCONFIG}" \
-    "Git config"
-}
-
-cleanup_gh_config() {
-  cleanup_managed_file \
-    "${REPO_GH_CONFIG}" \
-    "${LOCAL_GH_CONFIG}" \
-    "GitHub CLI config"
-}
-
-cleanup_ssh_config() {
-  cleanup_managed_file \
-    "${REPO_SSH_CONFIG}" \
-    "${LOCAL_SSH_CONFIG}" \
-    "SSH config"
-}
-
-cleanup_ssh_public_keys() {
-  cleanup_managed_file \
-    "${REPO_SSH_PUBLIC_KEY_ED25519}" \
-    "${LOCAL_SSH_PUBLIC_KEY_ED25519}" \
-    "SSH public key id_ed25519.pub"
-
-  cleanup_managed_file \
-    "${REPO_SSH_PUBLIC_KEY_MACAIR}" \
-    "${LOCAL_SSH_PUBLIC_KEY_MACAIR}" \
-    "SSH public key {macair}.pub"
-}
-
-cleanup_zed_settings() {
-  if [[ -f "${LOCAL_ZED_SETTINGS}" ]] && grep -q "Managed by dotfiles bootstrap" "${LOCAL_ZED_SETTINGS}"; then
-    log "Removing repo-managed Zed settings file"
-    rm -f "${LOCAL_ZED_SETTINGS}"
-  fi
-}
-
-cleanup_zed_keymap() {
-  cleanup_managed_file \
-    "${REPO_ZED_KEYMAP}" \
-    "${LOCAL_ZED_KEYMAP}" \
-    "Zed keymap"
-}
-
 cleanup_legacy_backups() {
   local legacy_path
   for legacy_path in \
     "${LEGACY_ZPROFILE_BACKUP}" \
     "${LEGACY_ZSHRC_BACKUP}" \
-    "${LEGACY_ZSH_PLUGINS_BACKUP}" \
-    "${LEGACY_STARSHIP_CONFIG_BACKUP}"; do
+    "${LEGACY_ZSH_PLUGINS_BACKUP}"; do
     if [[ -e "${legacy_path}" || -L "${legacy_path}" ]]; then
       log "Removing legacy backup ${legacy_path}"
       rm -rf "${legacy_path}"
@@ -333,16 +232,6 @@ cleanup_managed_configs() {
     return
   fi
 
-  cleanup_starship_config
-  cleanup_ghostty_config
-  cleanup_mise_config
-  cleanup_eza_config
-  cleanup_gitconfig
-  cleanup_gh_config
-  cleanup_ssh_config
-  cleanup_ssh_public_keys
-  cleanup_zed_settings
-  cleanup_zed_keymap
   cleanup_zprofile
   cleanup_zshrc
   cleanup_zsh_plugins

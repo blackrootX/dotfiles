@@ -27,8 +27,7 @@ This repo manages three main things:
 - `configs/eza/`: linked to `~/.config/eza`
 - `configs/git/.gitconfig`: linked to `~/.gitconfig`
 - `configs/git/config.yml`: linked to `~/.config/gh/config.yml`
-- `configs/ssh/config`: linked to `~/.ssh/config`
-- `configs/ssh/*.pub`: linked to matching files in `~/.ssh/`
+- `~/Library/Mobile Documents/com~apple~CloudDocs/dev/config/ssh/`: linked to `~/.ssh`
 - `configs/zed/settings.json.tmpl`: rendered to `~/.config/zed/settings.json`
 - `configs/zed/keymap.json`: linked to `~/.config/zed/keymap.json`
 - `scripts/bootstrap.sh`: installs Homebrew if needed, links managed config, installs Brewfile entries, and installs repo-managed `mise` tools
@@ -41,6 +40,24 @@ Bootstrap a machine:
 
 ```bash
 ./scripts/bootstrap.sh
+```
+
+By default, bootstrap links `~/.config` to the shared iCloud Drive config root at:
+
+```bash
+$HOME/Library/Mobile Documents/com~apple~CloudDocs/dev/config
+```
+
+By default, bootstrap also links `~/.ssh` to:
+
+```bash
+$HOME/Library/Mobile Documents/com~apple~CloudDocs/dev/config/ssh
+```
+
+Override that path for a different machine or layout:
+
+```bash
+ICLOUD_CONFIG_DIR="/custom/path/to/config" ./scripts/bootstrap.sh
 ```
 
 Install tracked App Store apps:
@@ -63,6 +80,8 @@ Remove the managed setup:
 - refreshes `sudo` credentials in interactive shells
 - installs Homebrew from the official installer script when missing
 - configures Homebrew to use the Tsinghua bottle/API mirrors after install
+- links `~/.config` to the default iCloud Drive config directory and backs up any existing local `~/.config`
+- links `~/.ssh` to the default iCloud Drive SSH directory and backs up any existing local `~/.ssh`
 - links repo-managed config into:
   - `~/.zprofile`
   - `~/.zshrc`
@@ -73,14 +92,12 @@ Remove the managed setup:
   - `~/.config/eza`
   - `~/.gitconfig`
   - `~/.config/gh/config.yml`
-  - `~/.ssh/config`
-  - tracked `~/.ssh/*.pub` files
 - installs Homebrew taps, formulae, and casks from `Brewfile` with per-item progress logs
 - pre-generates the Antidote plugin bundle after `antidote` is installed from `Brewfile`
 - offers an interactive `y/N` 1Password CLI sign-in checkpoint
 - renders `~/.config/zed/settings.json`
 - links `~/.config/zed/keymap.json`
-- syncs tracked SSH private keys from matching 1Password `SSH Key` items into `~/.ssh/`
+- verifies the 1Password SSH agent against the public keys already present in the iCloud-backed `~/.ssh/`
 - trusts the repo-managed `mise` config and installs its declared tools
 - retries `mise` installs with `MISE_ALL_COMPILE=1` if a prebuilt runtime download fails
 
@@ -155,8 +172,7 @@ App Store sign-in is intentionally kept as a manual prerequisite.
   - `eza` config
   - Git config
   - GitHub CLI config
-  - SSH config
-  - tracked SSH public keys
+  - iCloud-backed `~/.ssh`
   - Zed settings
   - Zed keymap
 - removes generated Antidote artifacts
@@ -176,15 +192,14 @@ This means:
 
 ## SSH Scope
 
-The repo-managed SSH config lives at `configs/ssh/`.
+SSH now lives in iCloud Drive at `~/Library/Mobile Documents/com~apple~CloudDocs/dev/config/ssh/`.
 
 This means:
 
-- `configs/ssh/config` is linked to `~/.ssh/config`
-- tracked public keys in `configs/ssh/*.pub` are linked to matching files in `~/.ssh/`
-- after `op` sign-in, bootstrap looks for matching 1Password `SSH Key` items and writes their private keys into `~/.ssh/`
-- private keys and host trust files such as `known_hosts` stay local and are not tracked in the repo
-- the SSH config points at private key paths in `~/.ssh/` and also uses the 1Password SSH agent when the socket at `~/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock` is available
+- bootstrap links `~/.ssh` to that iCloud directory
+- SSH config, public keys, private keys, and host trust files all live in the cloud-backed `~/.ssh/`
+- after `op` sign-in, bootstrap verifies that the 1Password SSH agent exposes the public keys already stored in that directory
+- the SSH config can still point at private key paths in `~/.ssh/` and also use the 1Password SSH agent when the socket at `~/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock` is available
 
 ## Idempotency
 
@@ -197,4 +212,6 @@ This means:
 - `configs/zsh/.zshrc` sources `~/.zshrc.local` when present
 - `configs/zsh/.zprofile` sources `~/.zprofile.local` when present
 - `configs/git/config.yml` covers GitHub CLI preferences only; keep `~/.config/gh/hosts.yml` local
+- override `ICLOUD_CONFIG_DIR` only if you want `~/.config` to point somewhere other than the default iCloud Drive path
+- override `ICLOUD_SSH_DIR` only if you want `~/.ssh` to point somewhere other than `${ICLOUD_CONFIG_DIR}/ssh`
 - secrets should stay out of tracked files; prefer local files or `op`-backed runtime injection for secret material
