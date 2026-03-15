@@ -90,7 +90,7 @@ fi
 alias oc="/opt/homebrew/bin/opencode"
 alias cc="claude"
 alias ccd="claude --allow-dangerously-skip-permissions"
-alias uu="brew update && brew upgrade && mise upgrade && antidote update"
+alias uu="brew update && brew upgrade && mise upgrade && antidote update && brew cleanup"
 
 y() {
   if ! command -v yazi >/dev/null 2>&1; then
