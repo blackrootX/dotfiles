@@ -16,6 +16,7 @@ LOCAL_ZSH_PLUGIN_BUNDLE="${HOME}/.zsh_plugins.zsh"
 LOCAL_DEV_DIR="${HOME}/Dev"
 LOCAL_CONFIG_DIR="${HOME}/.config"
 LOCAL_SSH_DIR="${HOME}/.ssh"
+LOCAL_CC_SWITCH_DIR="${HOME}/.cc-switch"
 LOCAL_PI_AGENT_DIR="${HOME}/.pi/agent"
 LOCAL_PI_AUTH_FILE="${LOCAL_PI_AGENT_DIR}/auth.json"
 LOCAL_PI_SETTINGS_FILE="${LOCAL_PI_AGENT_DIR}/settings.json"
@@ -27,6 +28,7 @@ ICLOUD_CONFIG_DIR="${ICLOUD_CONFIG_DIR:-${DEFAULT_ICLOUD_CONFIG_DIR}}"
 ICLOUD_DEV_DIR="${ICLOUD_DEV_DIR:-$(dirname "${ICLOUD_CONFIG_DIR}")}"
 ICLOUD_SSH_DIR="${ICLOUD_SSH_DIR:-${ICLOUD_CONFIG_DIR}/.ssh}"
 ICLOUD_AGENTS_DIR="${ICLOUD_AGENTS_DIR:-${ICLOUD_CONFIG_DIR}/.agents}"
+ICLOUD_CC_SWITCH_DIR="${ICLOUD_CC_SWITCH_DIR:-${ICLOUD_CONFIG_DIR}/.cc-switch}"
 ICLOUD_PI_AGENT_DIR="${ICLOUD_PI_AGENT_DIR:-${ICLOUD_CONFIG_DIR}/.pi/agent}"
 LOCAL_AGENTS_DIR="${HOME}/.agents"
 
@@ -263,6 +265,31 @@ ensure_local_agents_root() {
   ln -s "${ICLOUD_AGENTS_DIR}" "${LOCAL_AGENTS_DIR}"
 }
 
+ensure_local_cc_switch_root() {
+  mkdir -p "${ICLOUD_CC_SWITCH_DIR}"
+
+  if [[ -L "${LOCAL_CC_SWITCH_DIR}" ]]; then
+    local current_target
+    current_target="$(readlink "${LOCAL_CC_SWITCH_DIR}")"
+
+    if [[ "${current_target}" == "${ICLOUD_CC_SWITCH_DIR}" ]]; then
+      log "Local .cc-switch already points to iCloud cc-switch root"
+      return
+    fi
+
+    log "Replacing existing .cc-switch symlink"
+    rm -f "${LOCAL_CC_SWITCH_DIR}"
+  elif [[ -e "${LOCAL_CC_SWITCH_DIR}" ]]; then
+    local backup_path
+    backup_path="${LOCAL_CC_SWITCH_DIR}.pre-icloud-link.$(date +%Y%m%d%H%M%S)"
+    log "Moving existing .cc-switch to backup at ${backup_path}"
+    mv "${LOCAL_CC_SWITCH_DIR}" "${backup_path}"
+  fi
+
+  log "Linking ${LOCAL_CC_SWITCH_DIR} to iCloud cc-switch root ${ICLOUD_CC_SWITCH_DIR}"
+  ln -s "${ICLOUD_CC_SWITCH_DIR}" "${LOCAL_CC_SWITCH_DIR}"
+}
+
 link_pi_config() {
   mkdir -p "${ICLOUD_PI_AGENT_DIR}" "${LOCAL_PI_AGENT_DIR}"
   link_managed_file "${ICLOUD_PI_AGENT_DIR}/auth.json" "${LOCAL_PI_AUTH_FILE}" "Pi auth.json"
@@ -421,6 +448,7 @@ main() {
   ensure_local_config_root
   ensure_local_ssh_root
   ensure_local_agents_root
+  ensure_local_cc_switch_root
   link_pi_config
   link_zprofile
   link_zshrc

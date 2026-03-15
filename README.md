@@ -82,6 +82,7 @@ Remove the managed setup:
 - links `~/.config` to the iCloud Drive config directory and backs up any existing local `~/.config`
 - links `~/Dev` to the iCloud Drive Dev directory and backs up any existing local `~/Dev`
 - links `~/.ssh` to the iCloud Drive SSH directory and backs up any existing local `~/.ssh`
+- links `~/.cc-switch` to the shared cc-switch config in the iCloud-backed config root
 - links `~/.pi/agent/auth.json` and `~/.pi/agent/settings.json` to the shared Pi config in the iCloud-backed config root
 - links repo-managed zsh config into:
   - `~/.zprofile`
@@ -143,6 +144,18 @@ Bootstrap links:
 
 - `~/.pi/agent/auth.json`
 - `~/.pi/agent/settings.json`
+
+## cc-switch Scope
+
+cc-switch lives in iCloud Drive at:
+
+```bash
+~/Library/Mobile Documents/com~apple~CloudDocs/Dev/configs/.cc-switch/
+```
+
+Bootstrap links:
+
+- `~/.cc-switch`
 
 ## SSH Scope
 
