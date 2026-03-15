@@ -13,15 +13,21 @@ LOCAL_ZPROFILE="${HOME}/.zprofile"
 LOCAL_ZSHRC="${HOME}/.zshrc"
 LOCAL_ZSH_PLUGINS="${HOME}/.zsh_plugins.txt"
 LOCAL_ZSH_PLUGIN_BUNDLE="${HOME}/.zsh_plugins.zsh"
+LOCAL_DEV_DIR="${HOME}/Dev"
 LOCAL_CONFIG_DIR="${HOME}/.config"
 LOCAL_SSH_DIR="${HOME}/.ssh"
+LOCAL_PI_AGENT_DIR="${HOME}/.pi/agent"
+LOCAL_PI_AUTH_FILE="${LOCAL_PI_AGENT_DIR}/auth.json"
+LOCAL_PI_SETTINGS_FILE="${LOCAL_PI_AGENT_DIR}/settings.json"
 LOCAL_MISE_CONFIG="${HOME}/.config/mise/config.toml"
 HOMEBREW_TUNA_GIT_MIRROR="https://mirrors.tuna.tsinghua.edu.cn/git/homebrew"
 HOMEBREW_INSTALL_SCRIPT_URL="https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh"
 DEFAULT_ICLOUD_CONFIG_DIR="${HOME}/Library/Mobile Documents/com~apple~CloudDocs/Dev/configs"
 ICLOUD_CONFIG_DIR="${ICLOUD_CONFIG_DIR:-${DEFAULT_ICLOUD_CONFIG_DIR}}"
+ICLOUD_DEV_DIR="${ICLOUD_DEV_DIR:-$(dirname "${ICLOUD_CONFIG_DIR}")}"
 ICLOUD_SSH_DIR="${ICLOUD_SSH_DIR:-${ICLOUD_CONFIG_DIR}/.ssh}"
 ICLOUD_AGENTS_DIR="${ICLOUD_AGENTS_DIR:-${ICLOUD_CONFIG_DIR}/.agents}"
+ICLOUD_PI_AGENT_DIR="${ICLOUD_PI_AGENT_DIR:-${ICLOUD_CONFIG_DIR}/.pi/agent}"
 LOCAL_AGENTS_DIR="${HOME}/.agents"
 
 log() {
@@ -181,6 +187,31 @@ ensure_local_config_root() {
   ln -s "${ICLOUD_CONFIG_DIR}" "${LOCAL_CONFIG_DIR}"
 }
 
+ensure_local_dev_root() {
+  mkdir -p "${ICLOUD_DEV_DIR}"
+
+  if [[ -L "${LOCAL_DEV_DIR}" ]]; then
+    local current_target
+    current_target="$(readlink "${LOCAL_DEV_DIR}")"
+
+    if [[ "${current_target}" == "${ICLOUD_DEV_DIR}" ]]; then
+      log "Local Dev already points to iCloud Dev root"
+      return
+    fi
+
+    log "Replacing existing Dev symlink"
+    rm -f "${LOCAL_DEV_DIR}"
+  elif [[ -e "${LOCAL_DEV_DIR}" ]]; then
+    local backup_path
+    backup_path="${LOCAL_DEV_DIR}.pre-icloud-link.$(date +%Y%m%d%H%M%S)"
+    log "Moving existing Dev to backup at ${backup_path}"
+    mv "${LOCAL_DEV_DIR}" "${backup_path}"
+  fi
+
+  log "Linking ${LOCAL_DEV_DIR} to iCloud Dev root ${ICLOUD_DEV_DIR}"
+  ln -s "${ICLOUD_DEV_DIR}" "${LOCAL_DEV_DIR}"
+}
+
 ensure_local_ssh_root() {
   mkdir -p "${ICLOUD_SSH_DIR}"
   chmod 700 "${ICLOUD_SSH_DIR}"
@@ -230,6 +261,12 @@ ensure_local_agents_root() {
 
   log "Linking ${LOCAL_AGENTS_DIR} to iCloud agents root ${ICLOUD_AGENTS_DIR}"
   ln -s "${ICLOUD_AGENTS_DIR}" "${LOCAL_AGENTS_DIR}"
+}
+
+link_pi_config() {
+  mkdir -p "${ICLOUD_PI_AGENT_DIR}" "${LOCAL_PI_AGENT_DIR}"
+  link_managed_file "${ICLOUD_PI_AGENT_DIR}/auth.json" "${LOCAL_PI_AUTH_FILE}" "Pi auth.json"
+  link_managed_file "${ICLOUD_PI_AGENT_DIR}/settings.json" "${LOCAL_PI_SETTINGS_FILE}" "Pi settings.json"
 }
 
 link_zprofile() {
@@ -380,9 +417,11 @@ main() {
   install_homebrew
   ensure_brew_in_path
   configure_homebrew_china_mirror
+  ensure_local_dev_root
   ensure_local_config_root
   ensure_local_ssh_root
   ensure_local_agents_root
+  link_pi_config
   link_zprofile
   link_zshrc
   link_zsh_plugins

@@ -41,6 +41,12 @@ By default, bootstrap links `~/.config` to the shared iCloud Drive config root a
 $HOME/Library/Mobile Documents/com~apple~CloudDocs/Dev/configs
 ```
 
+Bootstrap also links `~/Dev` to the shared iCloud Drive Dev root at:
+
+```bash
+$HOME/Library/Mobile Documents/com~apple~CloudDocs/Dev
+```
+
 By default, bootstrap also links `~/.ssh` to:
 
 ```bash
@@ -74,7 +80,9 @@ Remove the managed setup:
 - installs Homebrew from the official installer script when missing
 - configures Homebrew to use the Tsinghua bottle/API mirrors after install
 - links `~/.config` to the iCloud Drive config directory and backs up any existing local `~/.config`
+- links `~/Dev` to the iCloud Drive Dev directory and backs up any existing local `~/Dev`
 - links `~/.ssh` to the iCloud Drive SSH directory and backs up any existing local `~/.ssh`
+- links `~/.pi/agent/auth.json` and `~/.pi/agent/settings.json` to the shared Pi config in the iCloud-backed config root
 - links repo-managed zsh config into:
   - `~/.zprofile`
   - `~/.zshrc`
@@ -122,6 +130,19 @@ App Store sign-in is intentionally kept as a manual prerequisite.
 - prints a success or failure notice that reflects the actual uninstall result
 
 Note: iCloud-backed `~/.config` and `~/.ssh` symlinks are intentionally preserved by uninstall.
+
+## Pi Scope
+
+Pi keeps its shared auth and settings files in iCloud Drive at:
+
+```bash
+~/Library/Mobile Documents/com~apple~CloudDocs/Dev/configs/.pi/agent/
+```
+
+Bootstrap links:
+
+- `~/.pi/agent/auth.json`
+- `~/.pi/agent/settings.json`
 
 ## SSH Scope
 
