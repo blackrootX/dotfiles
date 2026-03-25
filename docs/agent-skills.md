@@ -4,10 +4,6 @@ Local skill inventory captured from this machine so the same setup can be recrea
 
 ## `.agents/skills`
 
-- `browser-use`
-  Source: `/Users/blackpig/.agents/skills/browser-use`
-  Description: Automates browser interactions for web testing, form filling, screenshots, and data extraction.
-
 - `find-skills`
   Source: `/Users/blackpig/.agents/skills/find-skills`
   Description: Helps discover and install agent skills from the open skills ecosystem.

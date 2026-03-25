@@ -3,7 +3,6 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-HOMEBREW_TUNA_GIT_MIRROR="https://mirrors.tuna.tsinghua.edu.cn/git/homebrew"
 
 log() {
   printf '[apps] %s\n' "$1"
@@ -44,14 +43,6 @@ ensure_brew_in_path() {
   exit 1
 }
 
-configure_homebrew_china_mirror() {
-  export HOMEBREW_API_DOMAIN="https://mirrors.tuna.tsinghua.edu.cn/homebrew-bottles/api"
-  export HOMEBREW_BOTTLE_DOMAIN="https://mirrors.tuna.tsinghua.edu.cn/homebrew-bottles"
-  export HOMEBREW_BREW_GIT_REMOTE="${HOMEBREW_TUNA_GIT_MIRROR}/brew.git"
-  export HOMEBREW_CORE_GIT_REMOTE="${HOMEBREW_TUNA_GIT_MIRROR}/homebrew-core.git"
-  export HOMEBREW_INSTALL_FROM_API=1
-}
-
 ensure_mas_installed() {
   if command -v mas >/dev/null 2>&1; then
     return
@@ -86,7 +77,6 @@ EOF
 main() {
   require_macos
   ensure_brew_in_path
-  configure_homebrew_china_mirror
   ensure_mas_installed
   install_app "937984704" "Amphetamine"
   install_app "1551531632" "AutoSwitchInput Pro"

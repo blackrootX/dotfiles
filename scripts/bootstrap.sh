@@ -17,11 +17,9 @@ LOCAL_DEV_DIR="${HOME}/Dev"
 LOCAL_CONFIG_DIR="${HOME}/.config"
 LOCAL_SSH_DIR="${HOME}/.ssh"
 LOCAL_CC_SWITCH_DIR="${HOME}/.cc-switch"
-LOCAL_PI_AGENT_DIR="${HOME}/.pi/agent"
-LOCAL_PI_AUTH_FILE="${LOCAL_PI_AGENT_DIR}/auth.json"
-LOCAL_PI_SETTINGS_FILE="${LOCAL_PI_AGENT_DIR}/settings.json"
+LOCAL_PI_DIR="${HOME}/.pi"
+SHARED_PI_DIR="${HOME}/Dev/Configs/.pi"
 LOCAL_MISE_CONFIG="${HOME}/.config/mise/config.toml"
-HOMEBREW_TUNA_GIT_MIRROR="https://mirrors.tuna.tsinghua.edu.cn/git/homebrew"
 HOMEBREW_INSTALL_SCRIPT_URL="https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh"
 DEFAULT_ICLOUD_CONFIG_DIR="${HOME}/Library/Mobile Documents/com~apple~CloudDocs/Dev/configs"
 ICLOUD_CONFIG_DIR="${ICLOUD_CONFIG_DIR:-${DEFAULT_ICLOUD_CONFIG_DIR}}"
@@ -29,7 +27,6 @@ ICLOUD_DEV_DIR="${ICLOUD_DEV_DIR:-$(dirname "${ICLOUD_CONFIG_DIR}")}"
 ICLOUD_SSH_DIR="${ICLOUD_SSH_DIR:-${ICLOUD_CONFIG_DIR}/.ssh}"
 ICLOUD_AGENTS_DIR="${ICLOUD_AGENTS_DIR:-${ICLOUD_CONFIG_DIR}/.agents}"
 ICLOUD_CC_SWITCH_DIR="${ICLOUD_CC_SWITCH_DIR:-${ICLOUD_CONFIG_DIR}/.cc-switch}"
-ICLOUD_PI_AGENT_DIR="${ICLOUD_PI_AGENT_DIR:-${ICLOUD_CONFIG_DIR}/.pi/agent}"
 LOCAL_AGENTS_DIR="${HOME}/.agents"
 
 log() {
@@ -91,46 +88,12 @@ install_homebrew() {
   installer_script="$(mktemp)"
 
   log "Installing Homebrew"
-  export HOMEBREW_API_DOMAIN="https://mirrors.tuna.tsinghua.edu.cn/homebrew-bottles/api"
-  export HOMEBREW_BOTTLE_DOMAIN="https://mirrors.tuna.tsinghua.edu.cn/homebrew-bottles"
   export HOMEBREW_INSTALL_FROM_API=1
-  unset HOMEBREW_BREW_GIT_REMOTE
-  unset HOMEBREW_CORE_GIT_REMOTE
 
   curl -fsSL "${HOMEBREW_INSTALL_SCRIPT_URL}" -o "${installer_script}"
   NONINTERACTIVE=1 /bin/bash "${installer_script}"
   rm -f "${installer_script}"
   ensure_brew_in_path
-}
-
-configure_homebrew_china_mirror() {
-  local brew_repo core_repo cask_repo
-
-  export HOMEBREW_API_DOMAIN="https://mirrors.tuna.tsinghua.edu.cn/homebrew-bottles/api"
-  export HOMEBREW_BOTTLE_DOMAIN="https://mirrors.tuna.tsinghua.edu.cn/homebrew-bottles"
-  export HOMEBREW_BREW_GIT_REMOTE="${HOMEBREW_TUNA_GIT_MIRROR}/brew.git"
-  export HOMEBREW_CORE_GIT_REMOTE="${HOMEBREW_TUNA_GIT_MIRROR}/homebrew-core.git"
-  export HOMEBREW_INSTALL_FROM_API=1
-
-  brew_repo="$(brew --repo)"
-  core_repo="$(brew --repo homebrew/core)"
-
-  if [[ -d "${brew_repo}/.git" ]]; then
-    log "Configuring Homebrew brew remote to Tsinghua mirror"
-    git -C "${brew_repo}" remote set-url origin "${HOMEBREW_BREW_GIT_REMOTE}"
-  fi
-
-  if [[ -d "${core_repo}/.git" ]]; then
-    log "Configuring Homebrew core remote to Tsinghua mirror"
-    git -C "${core_repo}" remote set-url origin "${HOMEBREW_CORE_GIT_REMOTE}"
-  fi
-
-  if cask_repo="$(brew --repo homebrew/cask 2>/dev/null)"; then
-    if [[ -d "${cask_repo}/.git" ]]; then
-      log "Configuring Homebrew cask remote to Tsinghua mirror"
-      git -C "${cask_repo}" remote set-url origin "${HOMEBREW_TUNA_GIT_MIRROR}/homebrew-cask.git"
-    fi
-  fi
 }
 
 link_managed_file() {
@@ -290,10 +253,29 @@ ensure_local_cc_switch_root() {
   ln -s "${ICLOUD_CC_SWITCH_DIR}" "${LOCAL_CC_SWITCH_DIR}"
 }
 
-link_pi_config() {
-  mkdir -p "${ICLOUD_PI_AGENT_DIR}" "${LOCAL_PI_AGENT_DIR}"
-  link_managed_file "${ICLOUD_PI_AGENT_DIR}/auth.json" "${LOCAL_PI_AUTH_FILE}" "Pi auth.json"
-  link_managed_file "${ICLOUD_PI_AGENT_DIR}/settings.json" "${LOCAL_PI_SETTINGS_FILE}" "Pi settings.json"
+ensure_local_pi_root() {
+  mkdir -p "${SHARED_PI_DIR}"
+
+  if [[ -L "${LOCAL_PI_DIR}" ]]; then
+    local current_target
+    current_target="$(readlink "${LOCAL_PI_DIR}")"
+
+    if [[ "${current_target}" == "${SHARED_PI_DIR}" ]]; then
+      log "Local .pi already points to shared Pi root"
+      return
+    fi
+
+    log "Replacing existing .pi symlink"
+    rm -f "${LOCAL_PI_DIR}"
+  elif [[ -e "${LOCAL_PI_DIR}" ]]; then
+    local backup_path
+    backup_path="${LOCAL_PI_DIR}.pre-icloud-link.$(date +%Y%m%d%H%M%S)"
+    log "Moving existing .pi to backup at ${backup_path}"
+    mv "${LOCAL_PI_DIR}" "${backup_path}"
+  fi
+
+  log "Linking ${LOCAL_PI_DIR} to shared Pi root ${SHARED_PI_DIR}"
+  ln -s "${SHARED_PI_DIR}" "${LOCAL_PI_DIR}"
 }
 
 link_zprofile() {
@@ -421,20 +403,10 @@ install_mise_node_tools() {
   log "Trusting mise config"
   mise trust "${LOCAL_MISE_CONFIG}"
 
-  if grep -q '"pipx:' "${LOCAL_MISE_CONFIG}" && ! command -v pipx >/dev/null 2>&1; then
-    log "Installing pipx for repo-managed mise pipx tools"
-    brew install pipx
-  fi
-
   log "Installing mise tools from global config"
   if ! mise install -y; then
     log "Retrying mise install with source builds enabled"
     MISE_ALL_COMPILE=1 mise install -y
-  fi
-
-  if grep -q '"pipx:browser-use"' "${LOCAL_MISE_CONFIG}"; then
-    log "Installing browser-use Chromium runtime"
-    mise exec -- uvx browser-use install
   fi
 }
 
@@ -443,13 +415,12 @@ main() {
   refresh_sudo
   install_homebrew
   ensure_brew_in_path
-  configure_homebrew_china_mirror
   ensure_local_dev_root
   ensure_local_config_root
   ensure_local_ssh_root
   ensure_local_agents_root
   ensure_local_cc_switch_root
-  link_pi_config
+  ensure_local_pi_root
   link_zprofile
   link_zshrc
   link_zsh_plugins

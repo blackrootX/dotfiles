@@ -17,7 +17,6 @@ LOCAL_ANTIDOTE_DIR="${HOME}/Library/Caches/antidote"
 LEGACY_ZPROFILE_BACKUP="${HOME}/.zprofile.pre-dotfiles-backup"
 LEGACY_ZSHRC_BACKUP="${HOME}/.zshrc.pre-dotfiles-backup"
 LEGACY_ZSH_PLUGINS_BACKUP="${HOME}/.zsh_plugins.txt.pre-dotfiles-backup"
-HOMEBREW_TUNA_GIT_MIRROR="https://mirrors.tuna.tsinghua.edu.cn/git/homebrew"
 HOMEBREW_UNINSTALL_SCRIPT_URL="https://raw.githubusercontent.com/Homebrew/install/HEAD/uninstall.sh"
 CLEANUP_COMPLETE=0
 

@@ -78,12 +78,11 @@ Remove the managed setup:
 - verifies the host is macOS
 - refreshes `sudo` credentials in interactive shells
 - installs Homebrew from the official installer script when missing
-- configures Homebrew to use the Tsinghua bottle/API mirrors after install
 - links `~/.config` to the iCloud Drive config directory and backs up any existing local `~/.config`
 - links `~/Dev` to the iCloud Drive Dev directory and backs up any existing local `~/Dev`
 - links `~/.ssh` to the iCloud Drive SSH directory and backs up any existing local `~/.ssh`
 - links `~/.cc-switch` to the shared cc-switch config in the iCloud-backed config root
-- links `~/.pi/agent/auth.json` and `~/.pi/agent/settings.json` to the shared Pi config in the iCloud-backed config root
+- links `~/.pi` to the shared Pi config in `~/Dev/Configs/.pi`
 - links repo-managed zsh config into:
   - `~/.zprofile`
   - `~/.zshrc`
@@ -134,16 +133,15 @@ Note: iCloud-backed `~/.config` and `~/.ssh` symlinks are intentionally preserve
 
 ## Pi Scope
 
-Pi keeps its shared auth and settings files in iCloud Drive at:
+Pi lives in the shared config root at:
 
 ```bash
-~/Library/Mobile Documents/com~apple~CloudDocs/Dev/configs/.pi/agent/
+~/Dev/Configs/.pi/
 ```
 
 Bootstrap links:
 
-- `~/.pi/agent/auth.json`
-- `~/.pi/agent/settings.json`
+- `~/.pi`
 
 ## cc-switch Scope
 
