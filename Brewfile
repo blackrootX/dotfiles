@@ -23,7 +23,6 @@ brew "sevenzip"
 brew "postgresql"
 
 cask "1password"
-cask "1password-cli"
 cask "cc-switch"
 cask "codex"
 cask "codex-app"
