@@ -401,7 +401,7 @@ install_mise_node_tools() {
   fi
 
   log "Trusting mise config"
-  mise trust "${LOCAL_MISE_CONFIG}"
+  mise trust -y "${LOCAL_MISE_CONFIG}"
 
   log "Installing mise tools from global config"
   if ! mise install -y; then
