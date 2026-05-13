@@ -21,6 +21,7 @@ brew "antidote"
 brew "zellij"
 brew "sevenzip"
 brew "postgresql"
+brew "neonctl"
 
 cask "1password"
 cask "1password-cli"
