@@ -116,3 +116,11 @@ y() {
 if [[ -f "${HOME}/.zshrc.local" ]]; then
   source "${HOME}/.zshrc.local"
 fi
+# Docker Desktop CLI tools (docker, kubectl, credential helpers)
+export PATH="/Applications/Docker.app/Contents/Resources/bin:$PATH"
+
+# The following lines have been added by Docker Desktop to enable Docker CLI completions.
+fpath=(/Users/tree/.docker/completions $fpath)
+autoload -Uz compinit
+compinit
+# End of Docker CLI completions
