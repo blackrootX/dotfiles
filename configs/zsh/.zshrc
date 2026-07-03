@@ -95,7 +95,7 @@ fi
 alias oc="/opt/homebrew/bin/opencode"
 alias cc="claude"
 alias ccd="claude --dangerously-skip-permissions"
-alias uu="brew update && brew upgrade && mise upgrade && antidote update && brew cleanup"
+alias uu="brew update ; brew upgrade ; mise upgrade ; antidote update ; brew cleanup"
 
 y() {
   if ! command -v yazi >/dev/null 2>&1; then
@@ -124,3 +124,4 @@ fpath=(/Users/tree/.docker/completions $fpath)
 autoload -Uz compinit
 compinit
 # End of Docker CLI completions
+export PATH="$HOME/.local/bin:$PATH"
