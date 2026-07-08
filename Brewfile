@@ -1,4 +1,3 @@
- tap "farion1231/ccswitch"
 tap "steipete/tap"
 
 brew "mas"
@@ -26,7 +25,6 @@ brew "railway"
 
 cask "1password"
 cask "1password-cli"
-cask "cc-switch"
 cask "codex"
 cask "chatgpt-atlas"
 cask "font-caskaydia-mono-nerd-font"
