@@ -92,7 +92,8 @@ if command -v starship >/dev/null 2>&1; then
   eval "$(starship init zsh)"
 fi
 
-alias oc="/opt/homebrew/bin/opencode"
+alias oc="/opt/homebrew/bin/opencode --auto"
+alias co="codex --dangerously-bypass-approvals-and-sandbox"
 alias cc="claude"
 alias ccd="claude --dangerously-skip-permissions"
 alias uu="brew update ; brew upgrade ; mise upgrade ; antidote update ; brew cleanup"
@@ -125,3 +126,14 @@ autoload -Uz compinit
 compinit
 # End of Docker CLI completions
 export PATH="$HOME/.local/bin:$PATH"
+
+# Claude Code via AWS Bedrock. Credentials remain in a private local file.
+claudeb() {
+  source ~/.config/bayesics/bedrock.env
+  CLAUDE_CODE_USE_BEDROCK=1 \
+  ANTHROPIC_DEFAULT_OPUS_MODEL='us.anthropic.claude-opus-4-8' \
+  claude "$@"
+}
+
+# Default AWS profile (IAM user songsheng, account 998230060335)
+export AWS_PROFILE=songsheng-admin
