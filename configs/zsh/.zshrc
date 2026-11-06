@@ -127,13 +127,31 @@ compinit
 # End of Docker CLI completions
 export PATH="$HOME/.local/bin:$PATH"
 
-# Claude Code via AWS Bedrock. Credentials remain in a private local file.
+# Claude Code via AWS Bedrock, using AWS_PROFILE.
 claudeb() {
-  source ~/.config/bayesics/bedrock.env
-  CLAUDE_CODE_USE_BEDROCK=1 \
-  ANTHROPIC_DEFAULT_OPUS_MODEL='us.anthropic.claude-opus-4-8' \
-  claude "$@"
+  CLAUDE_CODE_USE_BEDROCK=1 AWS_REGION=us-east-1 claude "$@"
+}
+
+# Codex via AWS Bedrock. Plain `codex` still uses the OpenAI subscription.
+# Subshell keeps the Bedrock credentials from leaking into the calling shell.
+codexb() {
+  (
+    source ~/.config/bayesics/bedrock.env
+    CODEX_HOME="$HOME/.codex-bedrock" codex "$@"
+  )
+}
+
+# Refresh pi extension packages before each launch. Silent, and a failed check
+# (offline, npm down) never blocks the session from starting.
+pi() {
+  command pi update --extensions >/dev/null 2>&1
+  command pi "$@"
 }
 
 # Default AWS profile (IAM user songsheng, account 998230060335)
 export AWS_PROFILE=songsheng-admin
+
+# GitHub MCP plugin (Claude Code) — reuse gh login token
+export GITHUB_PERSONAL_ACCESS_TOKEN="$(gh auth token)"
+
+export PATH="/opt/homebrew/opt/r/bin:$PATH"
